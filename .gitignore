@@ -1,7 +1,5 @@
 /research
-*.docx
 *.html
 .env
 /output_data_gee
 /output_data_gee_wbt
-/output_images
