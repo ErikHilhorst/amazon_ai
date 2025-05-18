@@ -1,0 +1,6 @@
+aoi_coordinates_gee = [
+    [-63.8, -13.0],  # Bottom-left (lon, lat)
+    [-62.8, -13.0],  # Bottom-right
+    [-62.8, -12.0],  # Top-right
+    [-63.8, -12.0],  # Top-left
+    [-63.8, -13.0]   # Close polygon
