@@ -3,3 +3,5 @@
 .env
 /output_data_gee
 /output_data_gee_wbt
+*.csv
+*.pkl
