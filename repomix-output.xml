@@ -1,0 +1,3129 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: **/*.py
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+amazon_archaeology_map/create_map.py
+amazon_archaeology_map/download_data.py
+aoi_boxes_map_borders.py
+aoi_boxes_map.py
+check_max_flow.py
+create_amazon_map.py
+gedi_map_lidar.py
+generate_satellite_reference.py
+old/original_strm_analysis.py
+overlay_interfluves_map_copy.py
+overlay_interfluves_map.py
+shptogeojson.py
+simple_amazon_map.py
+strm_analysis_new.py
+strm_analysis_simple.py
+strm_analysis.py
+visualize_rasters.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="amazon_archaeology_map/download_data.py">
+import kagglehub
+from kagglehub import KaggleDatasetAdapter
+import pandas as pd
+import os
+
+# --- Configuration ---
+# This list defines:
+# 1. The Kaggle slug to use (as provided by you).
+# 2. The specific file to attempt to load from that dataset (based on visualization script needs).
+# 3. The subfolder within 'data/' where this file should be saved.
+# 4. The filename to use when saving locally.
+
+datasets_to_process = [
+    {
+        "slug": "fafa92/mound-villages-acre",
+        "file_to_load": "mound_villages_acre.csv", # Expected by read_mound_villages_data
+        "local_folder_name": "mound-villages-acre",
+        "local_filename": "mound_villages_acre.csv"
+    },
+    {
+        "slug": "fafa92/casarabe-sites-utm",
+        "file_to_load": "casarabe_sites_utm.csv",    # Expected by read_casarabe_sites_data
+        "local_folder_name": "casarabe-sites-utm",
+        "local_filename": "casarabe_sites_utm.csv"
+    },
+    {
+        "slug": "fafa92/amazon-geoglyphs-sites",
+        "file_to_load": "amazon_geoglyphs_sites.csv",# Expected by read_geoglyphs_data
+        "local_folder_name": "amazon-geoglyphs-sites",
+        "local_filename": "amazon_geoglyphs_sites.csv"
+    },
+    {
+        "slug": "fafa92/archaeological-survey-data",
+        "file_to_load": "submit.csv",                # Expected by read_submit_data
+        "local_folder_name": "archaeological-survey-data",
+        "local_filename": "submit.csv"
+    },
+    {
+        "slug": "fafa92/science-data",
+        "file_to_load": "science.ade2541_data_s2.csv", # Expected by read_science_data
+        "local_folder_name": "science-data",
+        "local_filename": "science.ade2541_data_s2.csv"
+    },
+    # The "fafa92/river-segments" slug was in your list.
+    # The visualization script doesn't use it. If you need it for other purposes,
+    # you'll need to know the exact CSV filename within that dataset.
+    # Example (you'd need to replace 'actual_filename_in_dataset.csv'):
+    # {
+    #     "slug": "fafa92/river-segments",
+    #     "file_to_load": "actual_filename_in_dataset.csv",
+    #     "local_folder_name": "river-segments",
+    #     "local_filename": "actual_filename_in_dataset.csv"
+    # },
+]
+
+# Base download directory
+base_data_dir = "data"
+
+def main():
+    if not os.path.exists(base_data_dir):
+        os.makedirs(base_data_dir)
+        print(f"Created base data directory: {base_data_dir}")
+
+    print("--- Starting dataset loading and saving process ---")
+    print("IMPORTANT: This script uses the slugs you provided.")
+    print("If these slugs previously resulted in 404 (Not Found) errors, they will likely fail here too,")
+    print("as the Kaggle API will be unable to find a dataset with that exact OWNER/DATASET_NAME.\n")
+
+    for item in datasets_to_process:
+        slug = item["slug"]
+        file_to_load = item["file_to_load"]
+        local_folder_name = item["local_folder_name"]
+        local_filename = item["local_filename"]
+
+        # Create the specific subdirectory for this dataset's file
+        target_save_dir = os.path.join(base_data_dir, local_folder_name)
+        if not os.path.exists(target_save_dir):
+            os.makedirs(target_save_dir)
+            print(f"Created subfolder: {target_save_dir}")
+
+        full_local_path = os.path.join(target_save_dir, local_filename)
+
+        print(f"\nAttempting to load: '{file_to_load}' from dataset '{slug}'")
+        print(f"Target save path: '{full_local_path}'")
+
+        try:
+            # Load the specified file from the dataset directly into a pandas DataFrame
+            df = kagglehub.load_dataset(
+                KaggleDatasetAdapter.PANDAS,
+                slug,
+                file_path=file_to_load  # This tells kagglehub which file in the dataset to load
+            )
+
+            # Save the DataFrame to a CSV file locally
+            df.to_csv(full_local_path, index=False)
+            print(f"Successfully loaded and saved '{file_to_load}' to '{full_local_path}'")
+
+        except Exception as e:
+            print(f"ERROR processing dataset '{slug}' (file: '{file_to_load}'):")
+            print(f"  {e}")
+            print("  Possible reasons for failure:")
+            print(f"    1. The Kaggle dataset slug '{slug}' is incorrect or the dataset is private/inaccessible.")
+            print(f"    2. The file '{file_to_load}' does not exist within the dataset '{slug}' on Kaggle.")
+            print("    3. Your kaggle.json API token is not configured correctly or lacks permissions.")
+            print("    4. Network connectivity issues.")
+            print(f"    If you see a '404' or 'Not Found' error, it strongly indicates problem 1 or 2.")
+
+    print("\n--- Dataset loading and saving process finished ---")
+    print(f"Please check the '{base_data_dir}' directory and its subfolders for the CSV files.")
+    print("Ensure the paths in your main visualization script match this structure, for example:")
+    print(f"  '{base_data_dir}/mound-villages-acre/mound_villages_acre.csv'")
+    print(f"  '{base_data_dir}/archaeological-survey-data/submit.csv'")
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="aoi_boxes_map_borders.py">
+import folium
+import os
+import json # Still good to have for opening/inspecting GeoJSON if needed
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+output_images_dir = os.path.join(project_base_dir, 'output_images_aoi_borders')
+os.makedirs(output_images_dir, exist_ok=True)
+output_html_map = os.path.join(output_images_dir, "aoi_with_simple_borders_map.html")
+
+# Path to your GeoJSON file (which has empty properties)
+country_borders_geojson_path = os.path.join(project_base_dir, "ne_10m_admin_0_countries.geojson")
+
+# Your AOI coordinates (lon, lat)
+aoi_coordinates_lon_lat = [
+    [-63.8, -13.0],
+    [-62.8, -13.0],
+    [-62.8, -12.0],
+    [-63.8, -12.0],
+    [-63.8, -13.0]
+]
+
+# --- Calculate Center and Bounds for Folium ---
+min_lon = min(coord[0] for coord in aoi_coordinates_lon_lat)
+max_lon = max(coord[0] for coord in aoi_coordinates_lon_lat)
+min_lat = min(coord[1] for coord in aoi_coordinates_lon_lat)
+max_lat = max(coord[1] for coord in aoi_coordinates_lon_lat)
+map_fit_bounds = [[min_lat, min_lon], [max_lat, max_lon]]
+center_lat = (min_lat + max_lat) / 2
+center_lon = (min_lon + max_lon) / 2
+
+# --- Main Script ---
+if __name__ == "__main__":
+    if not os.path.exists(country_borders_geojson_path):
+        print(f"ERROR: Country borders GeoJSON file not found at: {country_borders_geojson_path}")
+        exit()
+
+    m = folium.Map(
+        location=[center_lat, center_lon],
+        zoom_start=7,
+        tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", # Default to Satellite
+        attr="Google Satellite"
+    )
+
+    folium.TileLayer(
+        tiles="OpenStreetMap",
+        attr='OpenStreetMap',
+        name='OpenStreetMap',
+        overlay=False,
+        control=True
+    ).add_to(m)
+
+    # --- Add Country Borders from GeoJSON (Simplified) ---
+    try:
+        def style_function(feature):
+            return {
+                'fillOpacity': 0,
+                'weight': 1.5,
+                'color': '#FFFF00' # Bright yellow
+            }
+
+        borders_overlay = folium.GeoJson(
+            country_borders_geojson_path,
+            name="Country Borders", # Simplified name
+            style_function=style_function
+            # NO TOOLTIP if properties are empty
+        )
+        borders_overlay.add_to(m)
+        print("Country borders GeoJSON layer added.")
+
+    except Exception as e:
+        print(f"Could not load or add GeoJSON layer: {e}")
+
+    folium.Rectangle(
+        bounds=map_fit_bounds,
+        color='red',
+        fill=True,
+        fill_color='red',
+        fill_opacity=0.2,
+        tooltip="Your Area of Interest (AOI)"
+    ).add_to(m)
+
+    m.fit_bounds(map_fit_bounds)
+    folium.LayerControl().add_to(m)
+    m.save(output_html_map)
+    print(f"Map with AOI box and simple borders saved to {output_html_map}")
+</file>
+
+<file path="aoi_boxes_map.py">
+import folium
+import os
+import numpy as np # For calculating centroid if needed
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__)) # Assumes script is in project base
+output_images_dir = os.path.join(project_base_dir, 'output_images_aoi_bounds')
+os.makedirs(output_images_dir, exist_ok=True)
+output_html_map = os.path.join(output_images_dir, "aoi_with_borders_map.html")
+
+# Your AOI coordinates
+# Original format: [[lon, lat], [lon, lat], ...]
+# Folium needs [[lat, lon], [lat, lon], ...] for polygons and fitting bounds
+aoi_coordinates_lon_lat = [
+    [-63.8, -13.0],  # Bottom-left (lon, lat)
+    [-62.8, -13.0],  # Bottom-right
+    [-62.8, -12.0],  # Top-right
+    [-63.8, -12.0],  # Top-left
+    [-63.8, -13.0]   # Close polygon (optional for simple rectangle, good for polygon)
+]
+
+# Convert to [[lat, lon]] for Folium
+aoi_bounds_folium_format = [[coord[1], coord[0]] for coord in aoi_coordinates_lon_lat]
+
+# --- Calculate Center and Bounds for Folium ---
+# For a simple rectangle defined by min/max lat/lon:
+min_lon = min(coord[0] for coord in aoi_coordinates_lon_lat)
+max_lon = max(coord[0] for coord in aoi_coordinates_lon_lat)
+min_lat = min(coord[1] for coord in aoi_coordinates_lon_lat)
+max_lat = max(coord[1] for coord in aoi_coordinates_lon_lat)
+
+# Bounds for m.fit_bounds() in [[south_lat, west_lon], [north_lat, east_lon]]
+map_fit_bounds = [[min_lat, min_lon], [max_lat, max_lon]]
+
+# Calculate approximate center for map initialization (optional, as fit_bounds will adjust)
+center_lat = (min_lat + max_lat) / 2
+center_lon = (min_lon + max_lon) / 2
+
+# --- Main Script ---
+if __name__ == "__main__":
+    print(f"AOI Min/Max Lat: {min_lat}, {max_lat}")
+    print(f"AOI Min/Max Lon: {min_lon}, {max_lon}")
+    print(f"Map will be centered around: Lat {center_lat}, Lon {center_lon}")
+    print(f"Map will fit to bounds: {map_fit_bounds}")
+
+    # Create a folium.Map object
+    # Using OpenStreetMap by default as it clearly shows borders
+    # You can also use Google Satellite as in your previous script:
+    # tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google Satellite"
+    m = folium.Map(
+        location=[center_lat, center_lon],
+        zoom_start=8, # Initial zoom, will be adjusted by fit_bounds
+        tiles="OpenStreetMap", # Clearly shows country borders
+        attr="OpenStreetMap"
+    )
+
+    # Add Google Satellite as an alternative layer if you prefer its visual style
+    google_satellite_tiles = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    folium.TileLayer(
+        tiles=google_satellite_tiles,
+        attr='Google Satellite',
+        name='Google Satellite',
+        overlay=False, # Make it a base layer option, not an overlay
+        control=True
+    ).add_to(m)
+
+
+    # Add your AOI as a red rectangle
+    # The bounds for folium.Rectangle are [[south_lat, west_lon], [north_lat, east_lon]]
+    folium.Rectangle(
+        bounds=map_fit_bounds, # Uses the [[min_lat, min_lon], [max_lat, max_lon]] format
+        color='red',
+        fill=True,
+        fill_color='red',
+        fill_opacity=0.1, # Semi-transparent fill
+        tooltip="Your Area of Interest (AOI)"
+    ).add_to(m)
+
+    # Fit map to the AOI's bounds
+    m.fit_bounds(map_fit_bounds)
+
+    # Add Layer Control to switch between OpenStreetMap and Satellite if desired
+    folium.LayerControl().add_to(m)
+
+    # Save the map to an HTML file
+    m.save(output_html_map)
+    print(f"Map with AOI box saved to {output_html_map}")
+    print(f"Open this HTML file in a web browser to view the map.")
+</file>
+
+<file path="check_max_flow.py">
+import rasterio
+import numpy as np
+import os
+
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+processed_tiffs_dir = os.path.join(project_base_dir, 'output_data_gee_wbt')
+facc_path = os.path.join(processed_tiffs_dir, 'facc_wbt.tif')
+
+if os.path.exists(facc_path):
+    with rasterio.open(facc_path) as src:
+        facc_data = src.read(1)
+        nodata = src.nodatavals[0] if src.nodatavals else None
+        if nodata is not None:
+            facc_data = facc_data[facc_data != nodata] # Exclude nodata for min/max
+        if facc_data.size > 0:
+            print(f"Flow Accumulation Min: {np.min(facc_data)}")
+            print(f"Flow Accumulation Max: {np.max(facc_data)}")
+            print(f"Flow Accumulation Mean: {np.mean(facc_data)}")
+            print(f"Flow Accumulation Median: {np.median(facc_data)}")
+            print(f"Flow Accumulation 95th percentile: {np.percentile(facc_data, 95)}")
+            print(f"Flow Accumulation 99th percentile: {np.percentile(facc_data, 99)}")
+        else:
+            print("No valid data in FACC raster after excluding nodata.")
+else:
+    print(f"FACC file not found: {facc_path}")
+</file>
+
+<file path="create_amazon_map.py">
+import folium
+
+# Coordinates for São Francisco do Guaporé (Corrected Decimal Degrees)
+# Original: -12° 03' 4.80" S, -63° 34' 1.79" W
+sao_francisco_coords = [-12.051333, -63.567164]
+sao_francisco_name = "São Francisco do Guaporé"
+
+# 1. Define the coordinates for the three areas
+areas_data = [
+    {
+        "name": "Area 1",
+        "bounds": [[-12.59, -63.39], [-12.41, -63.21]],
+        "center": [-12.50, -63.30],
+        "color": "blue",
+        "description": "Interfluve Guaporé/São Miguel, near BR-429"
+    },
+    {
+        "name": "Area 2",
+        "bounds": [[-11.79, -63.09], [-11.61, -62.91]],
+        "center": [-11.70, -63.00],
+        "color": "green",
+        "description": "Interfluve São Miguel/Cautário, near Seringueiras"
+    },
+    {
+        "name": "Area 3",
+        "bounds": [[-12.24, -63.47], [-12.06, -63.29]],
+        "center": [-12.15, -63.38],
+        "color": "red",
+        "description": "Headwaters east of São Francisco do Guaporé"
+    }
+]
+
+# 2. Determine a map center and initial zoom level
+all_centers_for_avg = [area["center"] for area in areas_data] + [sao_francisco_coords]
+map_center_lat = sum(coords[0] for coords in all_centers_for_avg) / len(all_centers_for_avg)
+map_center_lon = sum(coords[1] for coords in all_centers_for_avg) / len(all_centers_for_avg)
+initial_map_center = [map_center_lat, map_center_lon]
+initial_zoom = 9
+
+# 3. Create a folium.Map object
+google_satellite_tiles = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+google_attribution = "Google Satellite"
+
+m = folium.Map(
+    location=initial_map_center,
+    zoom_start=initial_zoom,
+    tiles=google_satellite_tiles,
+    attr=google_attribution
+)
+
+# 4. Add the rectangular areas and labels to the map
+for area in areas_data:
+    folium.Rectangle(
+        bounds=area["bounds"],
+        color=area["color"],
+        fill=True,
+        fill_color=area["color"],
+        fill_opacity=0.2,
+        tooltip=f"<b>{area['name']}</b><br>{area['description']}"
+    ).add_to(m)
+
+    folium.Marker(
+        location=area["center"],
+        tooltip=f"<b>{area['name']}</b>",
+        icon=None # Default blue marker
+    ).add_to(m)
+
+# Add marker for São Francisco do Guaporé
+folium.Marker(
+    location=sao_francisco_coords,
+    tooltip=sao_francisco_name,
+    popup=f"<b>{sao_francisco_name}</b><br>Coords: {sao_francisco_coords[0]:.6f}, {sao_francisco_coords[1]:.6f}",
+    icon=folium.Icon(color='orange', icon='info-sign') # Orange marker for distinction
+).add_to(m)
+
+# 5. Save the map to an HTML file
+output_filename = "amazon_research_areas_map_with_town_corrected.html"
+m.save(output_filename)
+
+print(f"Map with areas and corrected town saved to {output_filename}")
+</file>
+
+<file path="gedi_map_lidar.py">
+import folium
+import ee
+import os
+import json # For GeoJSON inspection if needed
+from dotenv import load_dotenv # Import load_dotenv
+
+# --- Load Environment Variables ---
+load_dotenv() # Load variables from .env file into environment
+gcp_project_id = os.getenv('GCP_PROJECT_ID') # Get your GCP Project ID
+
+# --- Earth Engine Initialization ---
+try:
+    if not gcp_project_id:
+        print("ERROR: GCP_PROJECT_ID not found in environment variables.")
+        print("Please ensure it is set in your .env file or system environment.")
+        exit()
+
+    # Initialize with the Google Cloud Project ID
+    ee.Initialize(project=gcp_project_id, opt_url='https://earthengine-highvolume.googleapis.com')
+    print(f"Google Earth Engine initialized successfully with project: {gcp_project_id}.")
+
+except ee.EEException as e:
+    print(f"ERROR: Could not initialize Google Earth Engine with project '{gcp_project_id}'.")
+    print(f"Details: {e}")
+    if "not found" in str(e) or "verify the project ID" in str(e):
+        print(f"Please double-check that '{gcp_project_id}' is a valid Google Cloud Project ID and that the Earth Engine API is enabled for it.")
+    if "user does not have access" in str(e):
+         print("Please ensure your authenticated user has permissions (e.g., Earth Engine User, Viewer) on this GCP project.")
+    # Attempt to authenticate if initialization fails (might not always resolve project issues but good for user auth)
+    try:
+        print("\nAttempting user authentication (this may open a browser window or prompt for a code)...")
+        ee.Authenticate() # This will guide you through authentication if not already done.
+        # Retry initialization after authentication
+        ee.Initialize(project=gcp_project_id, opt_url='https://earthengine-highvolume.googleapis.com')
+        print(f"Google Earth Engine initialized successfully with project '{gcp_project_id}' after re-authentication attempt.")
+    except Exception as auth_e:
+        print(f"Secondary authentication/initialization attempt failed: {auth_e}")
+        print("Please ensure you have run 'earthengine authenticate' in your terminal and followed the prompts,")
+        print("and that the GCP_PROJECT_ID is correct and has Earth Engine API enabled.")
+        exit() # Exit if EE cannot be initialized, as it's critical.
+except Exception as general_e:
+    print(f"An unexpected error occurred during Earth Engine initialization: {general_e}")
+    exit()
+
+
+# --- Configuration ---
+# Handle project base directory for script or notebook environments
+try:
+    project_base_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError: # __file__ is not defined, likely in a notebook or interactive session
+    project_base_dir = os.getcwd() # Default to current working directory
+    print(f"Running in notebook/interactive mode, project_base_dir set to: {project_base_dir}")
+
+output_dir_name = 'output_maps_with_gedi' # Name for the output directory
+output_maps_dir = os.path.join(project_base_dir, output_dir_name)
+os.makedirs(output_maps_dir, exist_ok=True) # Create output directory if it doesn't exist
+output_html_map = os.path.join(output_maps_dir, "amazon_aoi_with_gedi_coverage.html")
+
+# Path to your GeoJSON file for country borders
+country_borders_geojson_path = os.path.join(project_base_dir, "ne_10m_admin_0_countries.geojson")
+
+# Your AOI coordinates (lon, lat)
+aoi_coordinates_lon_lat = [
+    [-63.8, -13.0],
+    [-62.8, -13.0],
+    [-62.8, -12.0],
+    [-63.8, -12.0],
+    [-63.8, -13.0]
+]
+
+# --- Calculate Center and Bounds for Folium map based on AOI ---
+min_lon_aoi = min(coord[0] for coord in aoi_coordinates_lon_lat)
+max_lon_aoi = max(coord[0] for coord in aoi_coordinates_lon_lat)
+min_lat_aoi = min(coord[1] for coord in aoi_coordinates_lon_lat)
+max_lat_aoi = max(coord[1] for coord in aoi_coordinates_lon_lat)
+map_fit_bounds_aoi = [[min_lat_aoi, min_lon_aoi], [max_lat_aoi, max_lon_aoi]] # For folium.fit_bounds
+center_lat_aoi = (min_lat_aoi + max_lat_aoi) / 2
+center_lon_aoi = (min_lon_aoi + max_lon_aoi) / 2
+
+# --- GEDI Data Processing with Earth Engine ---
+amazon_roi_ee = ee.Geometry.Rectangle([-80, -20, -45, 10]) # [lon_min, lat_min, lon_max, lat_max]
+gedi_l2a_monthly_collection = ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
+gedi_coverage_quality_mosaic = gedi_l2a_monthly_collection \
+    .filterBounds(amazon_roi_ee) \
+    .select('quality_flag') \
+    .mosaic()
+gedi_binary_coverage = gedi_coverage_quality_mosaic.eq(1).selfMask()
+gedi_vis_params = {
+    'palette': ['00AA00'],
+    'opacity': 0.6
+}
+gedi_tiles_url = None
+try:
+    gedi_map_id_object = gedi_binary_coverage.getMapId(gedi_vis_params)
+    gedi_tiles_url = gedi_map_id_object['tile_fetcher'].url_format
+    print("GEDI coverage layer processed by Earth Engine and tile URL obtained.")
+except Exception as e:
+    print(f"Error getting GEDI layer from Earth Engine: {e}")
+    print("The map will be generated without the GEDI layer.")
+
+
+# --- Main Folium Map Script ---
+if __name__ == "__main__":
+    if not os.path.exists(country_borders_geojson_path):
+        print(f"WARNING: Country borders GeoJSON file not found at: {country_borders_geojson_path}")
+        print("The map will be generated without country borders.")
+
+    m = folium.Map(
+        location=[center_lat_aoi, center_lon_aoi],
+        zoom_start=8,
+        tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+        attr="Google Satellite"
+    )
+    folium.TileLayer(
+        tiles="OpenStreetMap",
+        attr='OpenStreetMap',
+        name='OpenStreetMap',
+        overlay=False,
+        control=True
+    ).add_to(m)
+
+    if gedi_tiles_url:
+        folium.TileLayer(
+            tiles=gedi_tiles_url,
+            attr='GEDI L2A Monthly Coverage (25m, Quality Flag = 1) via Google Earth Engine',
+            name='GEDI LiDAR Coverage (LARSE)',
+            overlay=True,
+            control=True,
+            opacity=gedi_vis_params['opacity']
+        ).add_to(m)
+        print("GEDI LiDAR coverage layer added to Folium map.")
+    else:
+        print("GEDI LiDAR coverage layer was not added due to an earlier error or it not being processed.")
+
+    if os.path.exists(country_borders_geojson_path):
+        try:
+            def style_function_borders(feature):
+                return {
+                    'fillOpacity': 0,
+                    'weight': 1.5,
+                    'color': '#FFFF00'
+                }
+            borders_overlay = folium.GeoJson(
+                country_borders_geojson_path,
+                name="Country Borders",
+                style_function=style_function_borders
+            )
+            borders_overlay.add_to(m)
+            print("Country borders GeoJSON layer added to Folium map.")
+        except Exception as e:
+            print(f"Could not load or add Country Borders GeoJSON layer: {e}")
+    else:
+        print(f"Country borders GeoJSON file not found at '{country_borders_geojson_path}', skipping this layer.")
+
+    aoi_coordinates_lat_lon_folium = [(lat, lon) for lon, lat in aoi_coordinates_lon_lat]
+    folium.Polygon(
+        locations=aoi_coordinates_lat_lon_folium,
+        color='red',
+        weight=2,
+        fill=True,
+        fill_color='red',
+        fill_opacity=0.15,
+        tooltip="Your Area of Interest (AOI)"
+    ).add_to(m)
+    print("User AOI polygon added to Folium map.")
+
+    m.fit_bounds(map_fit_bounds_aoi)
+    folium.LayerControl(collapsed=False).add_to(m)
+
+    try:
+        m.save(output_html_map)
+        print(f"Map successfully saved to {output_html_map}")
+        print(f"Note: GEDI coverage is derived from the LARSE/GEDI/GEDI02_A_002_MONTHLY Earth Engine asset,")
+        print("showing areas where the 'l2a_quality_flag' is 1 (indicating good quality rasterized footprints at 25m).")
+    except Exception as e:
+        print(f"Error saving map to HTML: {e}")
+
+    print("\nScript finished.")
+    print("If the GEDI layer is missing or the map is not as expected, please review any error messages above,")
+    print("especially regarding Earth Engine initialization and GeoJSON file paths.")
+</file>
+
+<file path="generate_satellite_reference.py">
+import folium
+import rasterio
+import os
+import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService # For Selenium 4+
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+processed_tiffs_dir = os.path.join(project_base_dir, 'output_data_gee_wbt')
+# Use the WBT-compatible DEM to get the bounds, as it's the primary input extent
+# or your original actual_dem_path_abs if you prefer
+reference_tiff_path = os.path.join(processed_tiffs_dir, 'gee_srtm_aoi_wbt_compat.tif') 
+# Fallback if the above is not yet created (e.g. during testing)
+# reference_tiff_path = os.path.join(project_base_dir, 'output_data_gee', 'gee_srtm_aoi.tif')
+
+
+output_images_dir = os.path.join(project_base_dir, 'output_images') # Same dir as other visualizations
+os.makedirs(output_images_dir, exist_ok=True)
+output_html_map = os.path.join(output_images_dir, "reference_satellite_map.html")
+output_png_image = os.path.join(output_images_dir, "reference_satellite_image.png")
+
+# Path to your ChromeDriver executable
+# OPTION 1: If chromedriver.exe is in your PATH, you might not need to specify this.
+# OPTION 2: Provide the full path. Replace with your actual path.
+# Make sure the chromedriver version matches your Chrome browser version.
+CHROME_DRIVER_PATH = r"C:\Users\larry\Downloads\chrome-win64\chrome.exe" # <--- !!! UPDATE THIS PATH !!!
+# If you don't have chromedriver or don't want to use Selenium, set USE_SELENIUM to False
+USE_SELENIUM = True # Set to False to just generate HTML and skip screenshot
+
+# --- Get Bounding Box from Reference TIFF ---
+def get_raster_bounds(tiff_path):
+    if not os.path.exists(tiff_path):
+        print(f"Error: Reference TIFF not found at {tiff_path}")
+        return None
+    try:
+        with rasterio.open(tiff_path) as src:
+            # Bounds are (minx, miny, maxx, maxy) in the raster's CRS
+            # We need to ensure these are in WGS84 (lat/lon) for Folium
+            if src.crs.is_geographic:
+                bounds = src.bounds
+                # Folium expects bounds as [[south_lat, west_lon], [north_lat, east_lon]]
+                # src.bounds gives (west_lon, south_lat, east_lon, north_lat)
+                folium_bounds = [[bounds.bottom, bounds.left], [bounds.top, bounds.right]]
+                print(f"Raster geographic bounds (lat/lon): {folium_bounds}")
+                return folium_bounds
+            else:
+                # If projected, transform to WGS84 (EPSG:4326)
+                from rasterio.warp import transform_bounds
+                wgs84_bounds = transform_bounds(src.crs, {'init': 'epsg:4326'}, *src.bounds)
+                # wgs84_bounds gives (west_lon, south_lat, east_lon, north_lat)
+                folium_bounds = [[wgs84_bounds[1], wgs84_bounds[0]], [wgs84_bounds[3], wgs84_bounds[2]]]
+                print(f"Raster projected bounds transformed to WGS84 (lat/lon): {folium_bounds}")
+                return folium_bounds
+    except Exception as e:
+        print(f"Error reading bounds from {tiff_path}: {e}")
+        return None
+
+# --- Main Script ---
+if __name__ == "__main__":
+    raster_extent_bounds = get_raster_bounds(reference_tiff_path)
+
+    if not raster_extent_bounds:
+        print("Could not determine raster bounds. Exiting.")
+        exit()
+
+    # Create a folium.Map object
+    google_satellite_tiles = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    google_attribution = "Google Satellite"
+
+    m = folium.Map(
+        tiles=google_satellite_tiles,
+        attr=google_attribution
+    )
+
+    # Fit map to the raster's bounds
+    m.fit_bounds(raster_extent_bounds)
+
+    # --- Optional: Add your areas_data and São Francisco marker if desired for context ---
+    sao_francisco_coords = [-12.051333, -63.567164]
+    sao_francisco_name = "São Francisco do Guaporé"
+    areas_data = [
+        {"name": "Area 1", "bounds": [[-12.59, -63.39], [-12.41, -63.21]], "center": [-12.50, -63.30], "color": "blue", "description": "Interfluve Guaporé/São Miguel, near BR-429"},
+        {"name": "Area 2", "bounds": [[-11.79, -63.09], [-11.61, -62.91]], "center": [-11.70, -63.00], "color": "green", "description": "Interfluve São Miguel/Cautário, near Seringueiras"},
+        {"name": "Area 3", "bounds": [[-12.24, -63.47], [-12.06, -63.29]], "center": [-12.15, -63.38], "color": "red", "description": "Headwaters east of São Francisco do Guaporé"}
+    ]
+
+    for area in areas_data:
+        folium.Rectangle(bounds=area["bounds"], color=area["color"], fill=True, fill_color=area["color"], fill_opacity=0.1, tooltip=f"<b>{area['name']}</b>").add_to(m)
+    folium.Marker(location=sao_francisco_coords, tooltip=sao_francisco_name, icon=folium.Icon(color='orange')).add_to(m)
+    # --- End Optional Additions ---
+
+    # Save the map to an HTML file (always useful)
+    m.save(output_html_map)
+    print(f"Satellite map focused on raster extent saved to {output_html_map}")
+
+    # Capture screenshot using Selenium
+    if USE_SELENIUM:
+        # Check if CHROME_DRIVER_PATH is set and valid
+        if not os.path.exists(CHROME_DRIVER_PATH) and CHROME_DRIVER_PATH != r"C:\path\to\your\chromedriver.exe": # Allow placeholder if not found
+             # Try to find chromedriver in PATH if specific path not valid
+            from shutil import which
+            if which('chromedriver'):
+                 print("Using chromedriver found in PATH.")
+                 # For Selenium 4, service object is preferred
+                 chrome_service = ChromeService() # Will use chromedriver from PATH
+            else:
+                print(f"Error: ChromeDriver not found at specified path '{CHROME_DRIVER_PATH}' or in system PATH.")
+                print("Please install ChromeDriver, update CHROME_DRIVER_PATH, or set USE_SELENIUM = False.")
+                exit()
+        elif CHROME_DRIVER_PATH == r"C:\path\to\your\chromedriver.exe":
+            print(f"Error: Placeholder CHROME_DRIVER_PATH is set. Please update it or ensure chromedriver is in PATH.")
+            print("Skipping screenshot generation.")
+            exit()
+        else: # CHROME_DRIVER_PATH is set and exists
+            chrome_service = ChromeService(executable_path=CHROME_DRIVER_PATH)
+
+
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")  # Run Chrome in headless mode (no GUI)
+        chrome_options.add_argument("--disable-gpu") # Often needed for headless
+        # Define window size - this will affect the screenshot.
+        # Try to make it somewhat square or match the aspect ratio of your DEM if known.
+        # Your DEM is 3711 W x 3713 H, which is almost square.
+        # Larger window size = higher resolution screenshot, but also larger file and more memory.
+        chrome_options.add_argument("--window-size=1200,1200") # Adjust as needed
+        chrome_options.add_argument("--hide-scrollbars")
+
+
+        # Initialize WebDriver
+        driver = None
+        try:
+            driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+            
+            # Open the local HTML file
+            html_file_url = 'file:///' + os.path.abspath(output_html_map).replace('\\', '/')
+            driver.get(html_file_url)
+
+            # Give the map tiles time to load - this is crucial!
+            # Increase if your internet is slow or map is complex.
+            time.sleep(10)  # Wait 10 seconds for tiles to load
+
+            # Take screenshot
+            driver.save_screenshot(output_png_image)
+            print(f"Screenshot saved to {output_png_image}")
+
+        except Exception as e:
+            print(f"Error during Selenium screenshot: {e}")
+            if "session not created" in str(e).lower() or "executable needs to be in path" in str(e).lower():
+                print("This might be due to an incorrect ChromeDriver path or version incompatibility.")
+                print(f"Ensure '{CHROME_DRIVER_PATH}' is correct and matches your Chrome browser version.")
+            elif "DevToolsActivePort file doesn't exist" in str(e):
+                print("This can sometimes happen with headless Chrome. Try with a visible browser first (remove --headless) or ensure all Chrome processes are closed.")
+
+        finally:
+            if driver:
+                driver.quit()
+    else:
+        print("Selenium screenshotting is disabled. Open the HTML file manually to view the map.")
+</file>
+
+<file path="old/original_strm_analysis.py">
+import ee
+import rasterio
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+import numpy as np
+from pysheds.grid import Grid
+from scipy.ndimage import generic_filter, distance_transform_edt
+import matplotlib.pyplot as plt
+import os
+import time # To handle potential GEE export delays
+from dotenv import load_dotenv # Import the library
+
+# --- 0. Load Environment Variables and Initialize Earth Engine ---
+load_dotenv()  # Load variables from .env file into environment variables
+
+# Get the Project ID from the environment variable
+GCP_PROJECT_ID = os.getenv('GCP_PROJECT_ID')
+
+if not GCP_PROJECT_ID:
+    print("Error: GCP_PROJECT_ID not found in .env file or environment variables.")
+    print("Please create a .env file with GCP_PROJECT_ID='your-project-id'")
+    exit()
+
+try:
+    # Pass the project ID to Initialize()
+    ee.Initialize(project=GCP_PROJECT_ID)
+except ee.EEException as e: # Catch specific EE exceptions
+    if 'Please specify a project' in str(e) or 'no project found' in str(e):
+        print(f"Initialization with project ID '{GCP_PROJECT_ID}' failed: {e}")
+        print("This might be due to an incorrect project ID or insufficient permissions.")
+        print("Attempting authentication (this might open a browser window)...")
+        try:
+            ee.Authenticate() # This will guide you through web authentication
+            # After authentication, try initializing again with the project ID
+            ee.Initialize(project=GCP_PROJECT_ID)
+        except Exception as auth_e:
+            print(f"Authentication or subsequent initialization failed: {auth_e}")
+            print("Please ensure your .env file has the correct GCP_PROJECT_ID and you have authenticated successfully.")
+            exit()
+    else: # Other EEException
+        print(f"An Earth Engine exception occurred during initialization: {e}")
+        exit()
+except Exception as e: # Catch any other general exceptions during initialization
+    print(f"A general exception occurred during Earth Engine initialization: {e}")
+    exit()
+
+
+print(f"Google Earth Engine initialized with project: {GCP_PROJECT_ID}")
+
+# --- 1. Define AOI and File Paths ---
+output_dir = 'output_data_gee/' # Create this directory
+os.makedirs(output_dir, exist_ok=True)
+
+# Define your broader AOI (e.g., around São Francisco do Guaporé / Seringueiras)
+# GEE uses [lon, lat] order for coordinates
+# These are illustrative coordinates for a broader region
+aoi_coordinates_gee = [
+    [-63.8, -13.0],  # Bottom-left (lon, lat)
+    [-62.8, -13.0],  # Bottom-right
+    [-62.8, -12.0],  # Top-right
+    [-63.8, -12.0],  # Top-left
+    [-63.8, -13.0]   # Close polygon
+]
+aoi_geometry_gee = ee.Geometry.Polygon(aoi_coordinates_gee)
+
+gee_dem_path = os.path.join(output_dir, 'gee_srtm_aoi.tif') # Path to save downloaded DEM
+
+# --- 2. Acquire DEM from Google Earth Engine ---
+print("Acquiring SRTM DEM from Google Earth Engine...")
+# SRTM 1 Arc-Second Global, Version 3
+srtm = ee.Image('USGS/SRTMGL1_003')
+
+# Clip the SRTM image to your AOI
+srtm_aoi = srtm.clip(aoi_geometry_gee)
+
+# Get information about the projection of the SRTM image to use for export
+# We'll export in its native projection to start
+projection_info = srtm.projection().getInfo()
+crs_gee = projection_info['crs']
+transform_gee = projection_info['transform'] # This is affine transform [scaleX, shearX, translateX, shearY, scaleY, translateY]
+
+print(f"GEE SRTM native CRS: {crs_gee}")
+print(f"GEE SRTM native transform: {transform_gee}")
+
+# Export the clipped DEM to Google Drive (or directly download if small enough)
+# For larger areas, exporting to Drive is more robust.
+# We'll attempt direct download here using getDownloadURL for simplicity,
+# but this might time out or fail for very large AOIs.
+task_config = {
+    'image': srtm_aoi.select('elevation'), # Select the elevation band
+    'description': 'SRTM_AOI_Export',
+    'scale': 30, # Approximate scale of SRTM 1-arcsec in meters
+    'region': aoi_geometry_gee,
+    'fileFormat': 'GeoTIFF',
+    # 'crs': crs_gee, # Export in native projection
+    # 'crsTransform': transform_gee # Using scale is often simpler
+}
+
+# --- Option A: Direct Download (may fail for large AOIs or return ZIP) ---
+download_success = False
+actual_dem_path_for_pysheds = gee_dem_path # Assume it's the direct path initially
+
+try:
+    print("Attempting direct download from GEE...")
+    if not isinstance(srtm_aoi, ee.Image):
+        print("Error: srtm_aoi is not an ee.Image object.")
+        raise Exception("Invalid GEE Image object for download")
+    
+    image_to_download = srtm_aoi.select('elevation')
+
+    download_url = image_to_download.getDownloadURL({
+        'scale': 30,
+        'region': aoi_geometry_gee,
+        'format': 'GEO_TIFF' # Request GeoTIFF
+    })
+    
+    print(f"Generated download URL: {download_url[:100]}...")
+
+    import requests
+    import shutil
+    import zipfile # For handling ZIP files
+
+    with requests.Session() as session:
+        response = session.get(download_url, stream=True, timeout=300)
+    
+    print(f"Download response status code: {response.status_code}")
+    content_type = response.headers.get('Content-Type', '').lower()
+    print(f"Download response content-type: {content_type}")
+
+    if response.status_code == 200:
+        temp_download_path = gee_dem_path + ".download" # Download to a temp name
+        with open(temp_download_path, 'wb') as f:
+            shutil.copyfileobj(response.raw, f)
+        print(f"SRTM DEM for AOI potentially downloaded to {temp_download_path}")
+
+        # Check if it's a ZIP file
+        if 'zip' in content_type or zipfile.is_zipfile(temp_download_path):
+            print("Downloaded file is a ZIP archive. Extracting...")
+            with zipfile.ZipFile(temp_download_path, 'r') as zip_ref:
+                # Find the .tif file within the zip
+                tif_files_in_zip = [name for name in zip_ref.namelist() if name.lower().endswith('.tif')]
+                if tif_files_in_zip:
+                    extracted_tif_name = tif_files_in_zip[0] # Assume the first .tif is the one we want
+                    zip_ref.extract(extracted_tif_name, path=output_dir)
+                    # Rename the extracted file to our expected gee_dem_path
+                    # or ensure actual_dem_path_for_pysheds points to it
+                    extracted_file_full_path = os.path.join(output_dir, extracted_tif_name)
+                    if os.path.exists(gee_dem_path) and gee_dem_path != extracted_file_full_path:
+                         os.remove(gee_dem_path) # Remove if it was a placeholder or previous bad download
+                    if gee_dem_path != extracted_file_full_path:
+                        os.rename(extracted_file_full_path, gee_dem_path)
+
+                    actual_dem_path_for_pysheds = gee_dem_path
+                    print(f"Extracted '{extracted_tif_name}' to '{actual_dem_path_for_pysheds}'")
+                else:
+                    print("Error: ZIP file downloaded, but no .tif file found inside.")
+                    download_success = False
+            os.remove(temp_download_path) # Clean up the zip file
+        else:
+            # Not a zip, assume it's the direct GeoTIFF, rename it
+            if os.path.exists(gee_dem_path) and gee_dem_path != temp_download_path:
+                 os.remove(gee_dem_path)
+            os.rename(temp_download_path, gee_dem_path)
+            actual_dem_path_for_pysheds = gee_dem_path
+        
+        # Verify the final DEM file (either extracted or directly downloaded)
+        if os.path.exists(actual_dem_path_for_pysheds):
+            try:
+                with rasterio.open(actual_dem_path_for_pysheds) as test_ds:
+                    print(f"Successfully opened final GeoTIFF: {test_ds.count} band(s), {test_ds.width}x{test_ds.height} pixels.")
+                download_success = True
+            except rasterio.errors.RasterioIOError:
+                print(f"Error: Final file {actual_dem_path_for_pysheds} is not a valid GeoTIFF.")
+                if os.path.exists(actual_dem_path_for_pysheds): os.remove(actual_dem_path_for_pysheds)
+                download_success = False
+        else:
+            print(f"Error: Expected DEM file {actual_dem_path_for_pysheds} not found after download/extraction attempt.")
+            download_success = False
+            
+    else: # response.status_code != 200
+        print(f"Failed to download directly. Status code: {response.status_code}")
+        try:
+            print(f"Error response from GEE: {response.content.decode('utf-8', errors='ignore')[:500]}")
+        except: pass
+        download_success = False
+
+    if not download_success:
+        print("Consider exporting to Google Drive for larger or problematic AOIs (Option B).")
+        raise Exception("Direct download failed or produced an invalid file.")
+
+except Exception as e_direct_download:
+    # ... (rest of the Google Drive export fallback logic as before) ...
+    print(f"Direct download from GEE failed or not chosen: {e_direct_download}")
+    print("If the error was 'Image.clip: Output of image computation is too large' or similar, your AOI is too big for direct download.")
+    print("Proceeding with Google Drive export option (ensure relevant code block is uncommented)...")
+    # --- Option B: Export to Google Drive (more robust for larger areas) ---
+    # Ensure the task_config is correctly defined if using this block
+    task_config_drive = {
+        'image': srtm_aoi.select('elevation'),
+        'description': 'SRTM_AOI_Export_Drive',
+        'scale': 30,
+        'region': aoi_geometry_gee,
+        'fileFormat': 'GeoTIFF',
+        'folder': 'GEE_Exports',
+        'fileNamePrefix': 'srtm_aoi_rondonia'
+    }
+    task = ee.batch.Export.image.toDrive(**task_config_drive)
+    task.start()
+    print(f"Exporting SRTM DEM for AOI to Google Drive. Task ID: {task.id}")
+    print("Please monitor the 'Tasks' tab in the GEE Code Editor or use 'task.status()' to check progress.")
+    print(f"Once complete, download '{task_config_drive['fileNamePrefix']}.tif' from your 'GEE_Exports' Drive folder, ensure it's named '{os.path.basename(gee_dem_path)}' in '{os.path.dirname(gee_dem_path)}', and re-run the script from step 3 (after commenting out the GEE download/export sections).")
+    exit()
+
+
+# --- Check if DEM was downloaded and processed successfully ---
+if not download_success or not os.path.exists(actual_dem_path_for_pysheds):
+    print(f"Error: DEM file {actual_dem_path_for_pysheds} not found or invalid. Please ensure it was downloaded and extracted correctly.")
+    exit()
+
+# --- 3. Hydrological Analysis with PySheds ---
+print(f"Starting hydrological analysis with PySheds using: {actual_dem_path_for_pysheds}")
+grid = Grid.from_raster(actual_dem_path_for_pysheds, data_name='dem')
+# Now grid.dem should be the Raster object for your initial DEM
+
+# Fill depressions
+print("Filling depressions...")
+# Pass the Raster object grid.dem to the 'dem' parameter
+grid.fill_depressions(dem=grid.dem, out_name='flooded_dem')
+# Now grid.flooded_dem is the Raster object for the filled DEM
+
+# Calculate flow direction
+print("Calculating flow direction...")
+# Pass the Raster object grid.flooded_dem to the 'dem' parameter
+grid.flowdir(dem=grid.flooded_dem, out_name='fdir')
+# Now grid.fdir is the Raster object for flow direction
+
+# Calculate flow accumulation
+print("Calculating flow accumulation...")
+# For accumulation, using the string name with 'data' often works,
+# as it might do the lookup internally. If this fails, try data=grid.fdir
+grid.accumulation(data='fdir', out_name='acc')
+# Now grid.acc is the Raster object for flow accumulation
+
+# Extract stream network
+stream_threshold = 1000
+print(f"Extracting stream network with threshold: {stream_threshold}...")
+# Pass the Raster objects grid.fdir and grid.acc
+grid.extract_river_network(fdir=grid.fdir, acc=grid.acc, threshold=stream_threshold, out_name='streams')
+# Now grid.streams is the Raster object for the stream network
+
+streams_raster = grid.streams.astype(np.uint8)
+
+# Save the streams raster
+streams_path = os.path.join(output_dir, 'streams_gee.tif')
+with rasterio.open(actual_dem_path_for_pysheds) as src_meta_provider:
+    profile = src_meta_provider.profile.copy()
+    profile.update(dtype=rasterio.uint8, count=1, compress='lzw')
+    with rasterio.open(streams_path, 'w', **profile) as dst:
+        dst.write(streams_raster, 1)
+print(f"Streams raster saved to {streams_path}")
+
+# --- 4. Identify Interfluve Zones (remains largely the same) ---
+
+# Method 1: Distance from Streams
+print("Calculating distance from streams...")
+binary_streams = (streams_raster > 0).astype(np.uint8)
+distance_to_streams = distance_transform_edt(1 - binary_streams)
+distance_interfluve_threshold_pixels = 15  # EXAMPLE
+interfluves_by_distance = (distance_to_streams > distance_interfluve_threshold_pixels).astype(np.uint8)
+
+interfluves_dist_path = os.path.join(output_dir, 'interfluves_by_distance_gee.tif')
+with rasterio.open(streams_path) as src_meta_provider:
+    profile = src_meta_provider.profile.copy()
+    with rasterio.open(interfluves_dist_path, 'w', **profile) as dst:
+        dst.write(interfluves_by_distance, 1)
+print(f"Interfluves by distance saved to {interfluves_dist_path}")
+
+
+# Method 2: Topographic Position Index (TPI)
+print("Calculating TPI...")
+with rasterio.open(gee_dem_path) as src:
+    dem_array = src.read(1).astype(np.float32) # Ensure float for calculations
+    profile = src.profile.copy()
+
+kernel_size = 9  # EXAMPLE
+pad_width = kernel_size // 2
+# Handle NaN values in DEM if any before padding/filtering, e.g., by interpolating or setting to a value
+dem_array_no_nan = np.nan_to_num(dem_array, nan=np.nanmean(dem_array)) # Example: replace NaN with mean
+
+dem_padded = np.pad(dem_array_no_nan, pad_width, mode='reflect')
+
+def mean_filter_nan_aware(arr): # TPI calculation needs to be robust to NaNs if present
+    valid_arr = arr[~np.isnan(arr)]
+    if valid_arr.size == 0:
+        return np.nan
+    return np.mean(valid_arr)
+
+mean_elevation_neighborhood = generic_filter(
+    dem_padded,
+    mean_filter_nan_aware, # Use NaN-aware mean
+    size=kernel_size,
+    mode='constant',
+    cval=np.nan
+)
+mean_elevation_neighborhood = mean_elevation_neighborhood[pad_width:-pad_width, pad_width:-pad_width]
+
+tpi = dem_array - mean_elevation_neighborhood # Original dem_array might have NaNs, so TPI will too
+
+tpi_interfluve_threshold = 0.5  # EXAMPLE
+# Handle NaNs in TPI before comparison
+interfluves_by_tpi = np.where(np.isnan(tpi), 0, (tpi > tpi_interfluve_threshold)).astype(np.uint8)
+
+
+tpi_path = os.path.join(output_dir, 'tpi_gee.tif')
+interfluves_tpi_path = os.path.join(output_dir, 'interfluves_by_tpi_gee.tif')
+tpi_profile = profile.copy()
+tpi_profile.update(dtype=rasterio.float32, compress='lzw')
+with rasterio.open(tpi_path, 'w', **tpi_profile) as dst:
+    dst.write(tpi.astype(rasterio.float32), 1) # Save TPI with potential NaNs
+
+interfluve_tpi_profile = profile.copy()
+interfluve_tpi_profile.update(dtype=rasterio.uint8, compress='lzw')
+with rasterio.open(interfluves_tpi_path, 'w', **interfluve_tpi_profile) as dst:
+    dst.write(interfluves_by_tpi, 1)
+print(f"TPI saved to {tpi_path}")
+print(f"Interfluves by TPI saved to {interfluves_tpi_path}")
+
+
+# Method 3: Combine Distance and TPI
+print("Combining distance and TPI methods for interfluves...")
+if interfluves_by_distance.shape == interfluves_by_tpi.shape:
+    combined_interfluves = (interfluves_by_distance & interfluves_by_tpi).astype(np.uint8)
+    combined_interfluves_path = os.path.join(output_dir, 'combined_interfluves_gee.tif')
+    with rasterio.open(streams_path) as src_meta_provider:
+        profile = src_meta_provider.profile.copy()
+        with rasterio.open(combined_interfluves_path, 'w', **profile) as dst:
+            dst.write(combined_interfluves, 1)
+    print(f"Combined interfluves saved to {combined_interfluves_path}")
+else:
+    print("Shapes of distance and TPI interfluve arrays do not match. Skipping combination.")
+
+print("Processing complete. Check the output_data_gee directory.")
+</file>
+
+<file path="overlay_interfluves_map_copy.py">
+import folium
+import rasterio
+import os
+import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from scipy.ndimage import binary_dilation # For dilation
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+processed_tiffs_dir = os.path.join(project_base_dir, 'output_data_gee_wbt')
+reference_dem_tiff_path = os.path.join(processed_tiffs_dir, 'gee_srtm_aoi_wbt_compat.tif')
+overlay_tiff_path = os.path.join(processed_tiffs_dir, 'combined_interfluves_gee_wbt.tif')
+
+output_images_dir = os.path.join(project_base_dir, 'output_images')
+os.makedirs(output_images_dir, exist_ok=True)
+output_html_map = os.path.join(output_images_dir, "satellite_map_with_enhanced_overlay.html")
+output_png_image = os.path.join(output_images_dir, "satellite_map_with_enhanced_overlay.png")
+temp_overlay_png_path = os.path.join(output_images_dir, "temp_enhanced_overlay.png")
+
+CHROME_DRIVER_PATH = r"C:\Users\larry\Downloads\chromedriver-win64\chromedriver.exe" # <--- !!! UPDATE THIS PATH !!!
+USE_SELENIUM = False
+
+# --- Get Bounding Box (same as before) ---
+def get_raster_bounds(tiff_path):
+    # ... (keep the existing get_raster_bounds function)
+    if not os.path.exists(tiff_path):
+        print(f"Error: Reference TIFF not found at {tiff_path}")
+        return None
+    try:
+        with rasterio.open(tiff_path) as src:
+            if src.crs.is_geographic:
+                bounds = src.bounds
+                folium_bounds = [[bounds.bottom, bounds.left], [bounds.top, bounds.right]]
+                # print(f"Raster geographic bounds (lat/lon) for {os.path.basename(tiff_path)}: {folium_bounds}")
+                return folium_bounds
+            else:
+                from rasterio.warp import transform_bounds
+                wgs84_bounds = transform_bounds(src.crs, {'init': 'epsg:4326'}, *src.bounds)
+                folium_bounds = [[wgs84_bounds[1], wgs84_bounds[0]], [wgs84_bounds[3], wgs84_bounds[2]]]
+                # print(f"Raster projected bounds for {os.path.basename(tiff_path)} transformed to WGS84 (lat/lon): {folium_bounds}")
+                return folium_bounds
+    except Exception as e:
+        print(f"Error reading bounds from {tiff_path}: {e}")
+        return None
+
+# --- Create RGBA PNG for Folium Overlay with Dilation ---
+def create_enhanced_overlay_png(source_tiff_path, target_png_path,
+                                color=(255, 0, 255), # Bright Magenta
+                                alpha=200,          # More opaque (0-255)
+                                dilation_iterations=3, # Number of pixels to dilate by. 2 = 5x5 window effectively.
+                                nodata_val=0):
+    """
+    Creates a PNG from a single-band GeoTIFF for overlay, with dilation for binary features.
+    For TPI or continuous data, dilation is usually not desired, so it's skipped.
+    """
+    if not os.path.exists(source_tiff_path):
+        print(f"Error: Overlay source TIFF not found at {source_tiff_path}")
+        return False
+    try:
+        with rasterio.open(source_tiff_path) as src:
+            data = src.read(1)
+            height, width = data.shape
+            rgba = np.zeros((height, width, 4), dtype=np.uint8) # R, G, B, Alpha
+
+            is_binary_interfluve_map = 'interfluves' in os.path.basename(source_tiff_path) or \
+                                     'streams' in os.path.basename(source_tiff_path)
+
+            if is_binary_interfluve_map:
+                # Create a binary mask (True where data is 1)
+                binary_mask = (data == 1)
+
+                # Apply dilation if iterations > 0
+                if dilation_iterations > 0:
+                    # The 'iterations' parameter in binary_dilation controls how many times the operation is applied.
+                    # A structure can be provided, but a default (cross-shaped structuring element) is fine.
+                    # Iterations=1 dilates by 1 pixel. Iterations=2 dilates by 2 pixels etc.
+                    # Visually, dilation_iterations=2 will make features about 5 pixels wider (2 on each side + original).
+                    dilated_mask = binary_dilation(binary_mask, iterations=dilation_iterations)
+                    mask_to_color = dilated_mask
+                    print(f"Applied dilation with {dilation_iterations} iterations.")
+                else:
+                    mask_to_color = binary_mask # No dilation
+
+                rgba[mask_to_color, 0] = color[0]
+                rgba[mask_to_color, 1] = color[1]
+                rgba[mask_to_color, 2] = color[2]
+                rgba[mask_to_color, 3] = alpha
+            elif 'tpi' in os.path.basename(source_tiff_path).lower():
+                # TPI Handling (as before, no dilation for TPI)
+                print("Applying TPI colormap.")
+                norm_tpi = plt.Normalize(vmin=-2, vmax=2)
+                colormap = plt.cm.RdBu_r
+                colored_tpi = colormap(norm_tpi(data))
+
+                alpha_channel_tpi = np.ones_like(data, dtype=float) * (alpha / 255.0)
+                alpha_channel_tpi[np.abs(data) < 0.25] = 0.1 * (alpha / 255.0) # Make flats very transparent but relative to overall alpha
+
+                rgba[:,:,0] = (colored_tpi[:,:,0] * 255).astype(np.uint8)
+                rgba[:,:,1] = (colored_tpi[:,:,1] * 255).astype(np.uint8)
+                rgba[:,:,2] = (colored_tpi[:,:,2] * 255).astype(np.uint8)
+                rgba[:,:,3] = (alpha_channel_tpi * 255).astype(np.uint8)
+
+                if src.nodatavals[0] is not None:
+                    nodata_mask = np.isnan(data) if np.isnan(src.nodatavals[0]) else (data == src.nodatavals[0])
+                    rgba[nodata_mask, 3] = 0
+            else: # Generic case (assume binary, apply dilation)
+                print("Applying generic binary colormap with dilation.")
+                binary_mask = (data != nodata_val)
+                if dilation_iterations > 0:
+                    dilated_mask = binary_dilation(binary_mask, iterations=dilation_iterations)
+                    mask_to_color = dilated_mask
+                else:
+                    mask_to_color = binary_mask
+                rgba[mask_to_color, 0] = color[0]
+                rgba[mask_to_color, 1] = color[1]
+                rgba[mask_to_color, 2] = color[2]
+                rgba[mask_to_color, 3] = alpha
+
+            plt.imsave(target_png_path, rgba)
+            print(f"Enhanced overlay PNG created at {target_png_path}")
+            return True
+    except Exception as e:
+        print(f"Error creating enhanced overlay PNG from {source_tiff_path}: {e}")
+        return False
+
+# --- Main Script ---
+if __name__ == "__main__":
+    map_fit_bounds = get_raster_bounds(reference_dem_tiff_path)
+    if not map_fit_bounds:
+        print("Could not determine DEM bounds for map fitting. Exiting.")
+        exit()
+
+    # --- Customize Overlay Appearance ---
+    # ... (your existing overlay customization code remains here) ...
+    overlay_color_binary = (255, 0, 255)
+    overlay_alpha_binary = 200
+    dilation_amount = 6
+    tpi_alpha = 180
+
+    if 'interfluves' in os.path.basename(overlay_tiff_path) or \
+       'streams' in os.path.basename(overlay_tiff_path) :
+        current_color = overlay_color_binary
+        current_alpha = overlay_alpha_binary
+        current_dilation = dilation_amount
+    elif 'tpi' in os.path.basename(overlay_tiff_path).lower():
+        current_color = None
+        current_alpha = tpi_alpha
+        current_dilation = 0
+    else:
+        current_color = (0, 255, 255)
+        current_alpha = 200
+        current_dilation = dilation_amount
+
+    if not create_enhanced_overlay_png(
+        overlay_tiff_path,
+        temp_overlay_png_path,
+        color=current_color,
+        alpha=current_alpha,
+        dilation_iterations=current_dilation
+    ):
+        print("Failed to create enhanced overlay PNG. Exiting.")
+        exit()
+
+    overlay_raster_bounds = get_raster_bounds(overlay_tiff_path)
+    if not overlay_raster_bounds:
+        print("Could not determine overlay raster bounds. Exiting.")
+        exit()
+
+    google_satellite_tiles = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    google_attribution = "Google Satellite"
+    m = folium.Map(tiles=google_satellite_tiles, attr=google_attribution)
+    m.fit_bounds(map_fit_bounds) # Fit to the bounds of your reference DEM initially
+
+    img_overlay = folium.raster_layers.ImageOverlay(
+        name=f"Overlay: {os.path.basename(overlay_tiff_path)} (Dilated: {current_dilation}px)",
+        image=temp_overlay_png_path,
+        bounds=overlay_raster_bounds,
+        opacity=1.0,
+        interactive=True,
+        cross_origin=False,
+        zindex=1,
+        show=True
+    )
+    img_overlay.add_to(m)
+
+    # --- Define and Add Your Target AOI for GEDI Analysis ---
+    # ** MODIFY THESE COORDINATES based on your visual guess from the map **
+    # These are [south_lat, west_lon], [north_lat, east_lon]
+    # Example placeholder coordinates (REPLACE THESE!)
+    aoi_gedi_bounds = [
+        [-12.85, -62.80],  # Approx South-West corner (latitude, longitude)
+        [-12.70, -62.95]   # Approx North-East corner (latitude, longitude)
+    ]
+    # Ensure lats are south < north and lons are west < east if defining by SW/NE
+    # Or, more robustly for folium.Rectangle, provide [[min_lat, min_lon], [max_lat, max_lon]]
+    min_lat_aoi = min(aoi_gedi_bounds[0][0], aoi_gedi_bounds[1][0])
+    max_lat_aoi = max(aoi_gedi_bounds[0][0], aoi_gedi_bounds[1][0])
+    min_lon_aoi = min(aoi_gedi_bounds[0][1], aoi_gedi_bounds[1][1])
+    max_lon_aoi = max(aoi_gedi_bounds[0][1], aoi_gedi_bounds[1][1])
+    
+    folium_aoi_bounds = [[min_lat_aoi, min_lon_aoi], [max_lat_aoi, max_lon_aoi]]
+
+    folium.Rectangle(
+        bounds=folium_aoi_bounds,
+        color='red',
+        fill=True,
+        fill_color='red',
+        fill_opacity=0.2,
+        tooltip="Target AOI for GEDI Analysis"
+    ).add_to(m)
+
+    # You might want to adjust zoom to focus on your new AOI after defining it
+    # m.fit_bounds(folium_aoi_bounds) # Uncomment this to zoom to the new AOI
+
+    folium.LayerControl().add_to(m)
+
+    m.save(output_html_map)
+    print(f"Satellite map with enhanced overlay and AOI box saved to {output_html_map}")
+    print(f"Current AOI for GEDI (min_lat, min_lon, max_lat, max_lon): {min_lat_aoi}, {min_lon_aoi}, {max_lat_aoi}, {max_lon_aoi}")
+
+    
+    # ... (Optional markers and areas_data) ...
+
+    m.save(output_html_map)
+    print(f"Satellite map with enhanced overlay saved to {output_html_map}")
+
+    # ... (Selenium screenshot code, same as before) ...
+    if USE_SELENIUM:
+        # (Your Selenium code as before)
+        # ...
+        # Remember to update CHROME_DRIVER_PATH and ensure chromedriver version matches Chrome
+        if not os.path.exists(CHROME_DRIVER_PATH) and CHROME_DRIVER_PATH != r"C:\path\to\your\chromedriver.exe":
+             from shutil import which
+             if which('chromedriver'):
+                 print("Using chromedriver found in PATH.")
+                 chrome_service = ChromeService()
+             else:
+                print(f"Error: ChromeDriver not found at specified path '{CHROME_DRIVER_PATH}' or in system PATH.")
+                USE_SELENIUM = False # Disable if not found
+        elif CHROME_DRIVER_PATH == r"C:\path\to\your\chromedriver.exe":
+            print(f"Error: Placeholder CHROME_DRIVER_PATH is set. Please update it or ensure chromedriver is in PATH.")
+            USE_SELENIUM = False
+        else:
+            chrome_service = ChromeService(executable_path=CHROME_DRIVER_PATH)
+
+        if USE_SELENIUM:
+            chrome_options = Options()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--window-size=1200,1200")
+            chrome_options.add_argument("--hide-scrollbars")
+            driver = None
+            try:
+                driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+                html_file_url = 'file:///' + os.path.abspath(output_html_map).replace('\\', '/')
+                driver.get(html_file_url)
+                time.sleep(10) # Allow map and overlay to load
+                driver.save_screenshot(output_png_image)
+                print(f"Screenshot saved to {output_png_image}")
+            except Exception as e:
+                print(f"Error during Selenium screenshot: {e}")
+            finally:
+                if driver:
+                    driver.quit()
+    if not USE_SELENIUM:
+        print("Selenium screenshotting is disabled or failed. Open the HTML file manually to view the map.")
+
+
+    # if os.path.exists(temp_overlay_png_path):
+    #     os.remove(temp_overlay_png_path)
+    #     print(f"Temporary overlay PNG {temp_overlay_png_path} removed.")
+</file>
+
+<file path="overlay_interfluves_map.py">
+import folium
+import rasterio
+import os
+import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from scipy.ndimage import binary_dilation # For dilation
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+processed_tiffs_dir = os.path.join(project_base_dir, 'output_data_gee_wbt')
+reference_dem_tiff_path = os.path.join(processed_tiffs_dir, 'gee_srtm_aoi_wbt_compat.tif')
+overlay_tiff_path = os.path.join(processed_tiffs_dir, 'combined_interfluves_gee_wbt.tif')
+
+output_images_dir = os.path.join(project_base_dir, 'output_images')
+os.makedirs(output_images_dir, exist_ok=True)
+output_html_map = os.path.join(output_images_dir, "satellite_map_with_enhanced_overlay.html")
+output_png_image = os.path.join(output_images_dir, "satellite_map_with_enhanced_overlay.png")
+temp_overlay_png_path = os.path.join(output_images_dir, "temp_enhanced_overlay.png")
+
+CHROME_DRIVER_PATH = r"C:\Users\larry\Downloads\chromedriver-win64\chromedriver.exe" # <--- !!! UPDATE THIS PATH !!!
+USE_SELENIUM = False
+
+# --- Get Bounding Box (same as before) ---
+def get_raster_bounds(tiff_path):
+    # ... (keep the existing get_raster_bounds function)
+    if not os.path.exists(tiff_path):
+        print(f"Error: Reference TIFF not found at {tiff_path}")
+        return None
+    try:
+        with rasterio.open(tiff_path) as src:
+            if src.crs.is_geographic:
+                bounds = src.bounds
+                folium_bounds = [[bounds.bottom, bounds.left], [bounds.top, bounds.right]]
+                # print(f"Raster geographic bounds (lat/lon) for {os.path.basename(tiff_path)}: {folium_bounds}")
+                return folium_bounds
+            else:
+                from rasterio.warp import transform_bounds
+                wgs84_bounds = transform_bounds(src.crs, {'init': 'epsg:4326'}, *src.bounds)
+                folium_bounds = [[wgs84_bounds[1], wgs84_bounds[0]], [wgs84_bounds[3], wgs84_bounds[2]]]
+                # print(f"Raster projected bounds for {os.path.basename(tiff_path)} transformed to WGS84 (lat/lon): {folium_bounds}")
+                return folium_bounds
+    except Exception as e:
+        print(f"Error reading bounds from {tiff_path}: {e}")
+        return None
+
+# --- Create RGBA PNG for Folium Overlay with Dilation ---
+def create_enhanced_overlay_png(source_tiff_path, target_png_path,
+                                color=(255, 0, 255), # Bright Magenta
+                                alpha=200,          # More opaque (0-255)
+                                dilation_iterations=3, # Number of pixels to dilate by. 2 = 5x5 window effectively.
+                                nodata_val=0):
+    """
+    Creates a PNG from a single-band GeoTIFF for overlay, with dilation for binary features.
+    For TPI or continuous data, dilation is usually not desired, so it's skipped.
+    """
+    if not os.path.exists(source_tiff_path):
+        print(f"Error: Overlay source TIFF not found at {source_tiff_path}")
+        return False
+    try:
+        with rasterio.open(source_tiff_path) as src:
+            data = src.read(1)
+            height, width = data.shape
+            rgba = np.zeros((height, width, 4), dtype=np.uint8) # R, G, B, Alpha
+
+            is_binary_interfluve_map = 'interfluves' in os.path.basename(source_tiff_path) or \
+                                     'streams' in os.path.basename(source_tiff_path)
+
+            if is_binary_interfluve_map:
+                # Create a binary mask (True where data is 1)
+                binary_mask = (data == 1)
+
+                # Apply dilation if iterations > 0
+                if dilation_iterations > 0:
+                    # The 'iterations' parameter in binary_dilation controls how many times the operation is applied.
+                    # A structure can be provided, but a default (cross-shaped structuring element) is fine.
+                    # Iterations=1 dilates by 1 pixel. Iterations=2 dilates by 2 pixels etc.
+                    # Visually, dilation_iterations=2 will make features about 5 pixels wider (2 on each side + original).
+                    dilated_mask = binary_dilation(binary_mask, iterations=dilation_iterations)
+                    mask_to_color = dilated_mask
+                    print(f"Applied dilation with {dilation_iterations} iterations.")
+                else:
+                    mask_to_color = binary_mask # No dilation
+
+                rgba[mask_to_color, 0] = color[0]
+                rgba[mask_to_color, 1] = color[1]
+                rgba[mask_to_color, 2] = color[2]
+                rgba[mask_to_color, 3] = alpha
+            elif 'tpi' in os.path.basename(source_tiff_path).lower():
+                # TPI Handling (as before, no dilation for TPI)
+                print("Applying TPI colormap.")
+                norm_tpi = plt.Normalize(vmin=-2, vmax=2)
+                colormap = plt.cm.RdBu_r
+                colored_tpi = colormap(norm_tpi(data))
+
+                alpha_channel_tpi = np.ones_like(data, dtype=float) * (alpha / 255.0)
+                alpha_channel_tpi[np.abs(data) < 0.25] = 0.1 * (alpha / 255.0) # Make flats very transparent but relative to overall alpha
+
+                rgba[:,:,0] = (colored_tpi[:,:,0] * 255).astype(np.uint8)
+                rgba[:,:,1] = (colored_tpi[:,:,1] * 255).astype(np.uint8)
+                rgba[:,:,2] = (colored_tpi[:,:,2] * 255).astype(np.uint8)
+                rgba[:,:,3] = (alpha_channel_tpi * 255).astype(np.uint8)
+
+                if src.nodatavals[0] is not None:
+                    nodata_mask = np.isnan(data) if np.isnan(src.nodatavals[0]) else (data == src.nodatavals[0])
+                    rgba[nodata_mask, 3] = 0
+            else: # Generic case (assume binary, apply dilation)
+                print("Applying generic binary colormap with dilation.")
+                binary_mask = (data != nodata_val)
+                if dilation_iterations > 0:
+                    dilated_mask = binary_dilation(binary_mask, iterations=dilation_iterations)
+                    mask_to_color = dilated_mask
+                else:
+                    mask_to_color = binary_mask
+                rgba[mask_to_color, 0] = color[0]
+                rgba[mask_to_color, 1] = color[1]
+                rgba[mask_to_color, 2] = color[2]
+                rgba[mask_to_color, 3] = alpha
+
+            plt.imsave(target_png_path, rgba)
+            print(f"Enhanced overlay PNG created at {target_png_path}")
+            return True
+    except Exception as e:
+        print(f"Error creating enhanced overlay PNG from {source_tiff_path}: {e}")
+        return False
+
+# --- Main Script ---
+if __name__ == "__main__":
+    map_fit_bounds = get_raster_bounds(reference_dem_tiff_path)
+    if not map_fit_bounds:
+        print("Could not determine DEM bounds for map fitting. Exiting.")
+        exit()
+
+    # --- Customize Overlay Appearance ---
+    # For 'combined_interfluves_gee_wbt.tif' or other binary interfluve maps:
+    overlay_color_binary = (255, 0, 255)  # Bright Magenta (R, G, B)
+    overlay_alpha_binary = 200             # Opacity (0-255, higher is more opaque)
+    dilation_amount = 6                  # Dilate by 2 pixels. Effectively makes features ~5 pixels wide.
+                                         # Set to 0 for no dilation.
+
+    # For TPI (these will be used if overlay_tiff_path points to a TPI map)
+    tpi_alpha = 180 # General alpha for TPI, transparency for flat areas is relative to this
+
+    # Determine parameters based on the overlay TIFF name
+    if 'interfluves' in os.path.basename(overlay_tiff_path) or \
+       'streams' in os.path.basename(overlay_tiff_path) :
+        current_color = overlay_color_binary
+        current_alpha = overlay_alpha_binary
+        current_dilation = dilation_amount
+    elif 'tpi' in os.path.basename(overlay_tiff_path).lower():
+        current_color = None # Not directly used for TPI as colormap handles it
+        current_alpha = tpi_alpha
+        current_dilation = 0 # No dilation for TPI
+    else: # Default for other unknown binary types
+        current_color = (0, 255, 255) # Cyan
+        current_alpha = 200
+        current_dilation = dilation_amount
+
+    if not create_enhanced_overlay_png(
+        overlay_tiff_path,
+        temp_overlay_png_path,
+        color=current_color,
+        alpha=current_alpha,
+        dilation_iterations=current_dilation
+    ):
+        print("Failed to create enhanced overlay PNG. Exiting.")
+        exit()
+
+    overlay_raster_bounds = get_raster_bounds(overlay_tiff_path)
+    if not overlay_raster_bounds:
+        print("Could not determine overlay raster bounds. Exiting.")
+        exit()
+
+    google_satellite_tiles = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    google_attribution = "Google Satellite"
+    m = folium.Map(tiles=google_satellite_tiles, attr=google_attribution)
+    m.fit_bounds(map_fit_bounds)
+
+    img_overlay = folium.raster_layers.ImageOverlay(
+        name=f"Overlay: {os.path.basename(overlay_tiff_path)} (Dilated: {current_dilation}px)",
+        image=temp_overlay_png_path,
+        bounds=overlay_raster_bounds,
+        opacity=1.0, # The alpha is baked into the PNG, so Folium layer opacity can be 1.0
+        interactive=True,
+        cross_origin=False,
+        zindex=1,
+        show=True
+    )
+    img_overlay.add_to(m)
+    folium.LayerControl().add_to(m)
+
+    # ... (Optional markers and areas_data) ...
+
+    m.save(output_html_map)
+    print(f"Satellite map with enhanced overlay saved to {output_html_map}")
+
+    # ... (Selenium screenshot code, same as before) ...
+    if USE_SELENIUM:
+        # (Your Selenium code as before)
+        # ...
+        # Remember to update CHROME_DRIVER_PATH and ensure chromedriver version matches Chrome
+        if not os.path.exists(CHROME_DRIVER_PATH) and CHROME_DRIVER_PATH != r"C:\path\to\your\chromedriver.exe":
+             from shutil import which
+             if which('chromedriver'):
+                 print("Using chromedriver found in PATH.")
+                 chrome_service = ChromeService()
+             else:
+                print(f"Error: ChromeDriver not found at specified path '{CHROME_DRIVER_PATH}' or in system PATH.")
+                USE_SELENIUM = False # Disable if not found
+        elif CHROME_DRIVER_PATH == r"C:\path\to\your\chromedriver.exe":
+            print(f"Error: Placeholder CHROME_DRIVER_PATH is set. Please update it or ensure chromedriver is in PATH.")
+            USE_SELENIUM = False
+        else:
+            chrome_service = ChromeService(executable_path=CHROME_DRIVER_PATH)
+
+        if USE_SELENIUM:
+            chrome_options = Options()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--window-size=1200,1200")
+            chrome_options.add_argument("--hide-scrollbars")
+            driver = None
+            try:
+                driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+                html_file_url = 'file:///' + os.path.abspath(output_html_map).replace('\\', '/')
+                driver.get(html_file_url)
+                time.sleep(10) # Allow map and overlay to load
+                driver.save_screenshot(output_png_image)
+                print(f"Screenshot saved to {output_png_image}")
+            except Exception as e:
+                print(f"Error during Selenium screenshot: {e}")
+            finally:
+                if driver:
+                    driver.quit()
+    if not USE_SELENIUM:
+        print("Selenium screenshotting is disabled or failed. Open the HTML file manually to view the map.")
+
+
+    # if os.path.exists(temp_overlay_png_path):
+    #     os.remove(temp_overlay_png_path)
+    #     print(f"Temporary overlay PNG {temp_overlay_png_path} removed.")
+</file>
+
+<file path="shptogeojson.py">
+import geopandas
+import os
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+shapefile_path = os.path.join(project_base_dir, "ne_10m_admin_0_countries.shp")
+output_geojson_path = os.path.join(project_base_dir, "ne_10m_admin_0_countries.geojson")
+
+if __name__ == "__main__":
+    if not os.path.exists(shapefile_path):
+        print(f"ERROR: Shapefile not found at: {shapefile_path}")
+    else:
+        try:
+            # Read the shapefile
+            gdf = geopandas.read_file(shapefile_path)
+
+            # Check if CRS is already WGS84, if not, reproject
+            # Natural Earth data is typically already in EPSG:4326 (WGS84)
+            if gdf.crs is None:
+                print("Warning: Input shapefile has no CRS defined. Assuming WGS84 (EPSG:4326).")
+                # If you know for sure it's WGS84, you could assign it:
+                # gdf = gdf.set_crs("EPSG:4326", allow_override=True)
+            elif gdf.crs.to_epsg() != 4326:
+                print(f"Reprojecting from {gdf.crs} to EPSG:4326 (WGS84)...")
+                gdf = gdf.to_crs("EPSG:4326") # Reproject to WGS84 if it's not already
+
+            # Save to GeoJSON
+            # When saving to GeoJSON, geopandas should default to WGS84 if the gdf is in WGS84
+            gdf.to_file(output_geojson_path, driver="GeoJSON")
+            print(f"Successfully converted Shapefile to GeoJSON: {output_geojson_path}")
+            print("You can now use this GeoJSON file in your Folium script.")
+        except Exception as e:
+            print(f"An error occurred during conversion: {e}")
+</file>
+
+<file path="simple_amazon_map.py">
+import folium
+
+# Coordinates for São Francisco do Guaporé (Corrected Decimal Degrees)
+# Original: -12° 03' 4.80" S, -63° 34' 1.79" W
+sao_francisco_coords = [-12.051333, -63.567164]
+sao_francisco_name = "São Francisco do Guaporé"
+
+# 1. Define the centers for the three areas (still needed to calculate the map center)
+area_centers_for_avg = [
+    [-12.50, -63.30], # Area 1 center
+    [-11.70, -63.00], # Area 2 center
+    [-12.15, -63.38]  # Area 3 center
+]
+
+# 2. Determine a map center and initial zoom level
+all_centers_for_avg = area_centers_for_avg + [sao_francisco_coords]
+map_center_lat = sum(coords[0] for coords in all_centers_for_avg) / len(all_centers_for_avg)
+map_center_lon = sum(coords[1] for coords in all_centers_for_avg) / len(all_centers_for_avg)
+initial_map_center = [map_center_lat, map_center_lon]
+initial_zoom = 9
+
+# 3. Create a folium.Map object
+google_satellite_tiles = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+google_attribution = "Google Satellite"
+
+m_clean = folium.Map(
+    location=initial_map_center,
+    zoom_start=initial_zoom,
+    tiles=google_satellite_tiles,
+    attr=google_attribution
+)
+
+# Add marker for São Francisco do Guaporé
+folium.Marker(
+    location=sao_francisco_coords,
+    tooltip=sao_francisco_name,
+    popup=f"<b>{sao_francisco_name}</b><br>Coords: {sao_francisco_coords[0]:.6f}, {sao_francisco_coords[1]:.6f}",
+    icon=folium.Icon(color='orange', icon='info-sign') # Orange marker
+).add_to(m_clean)
+
+# 5. Save the map to a new HTML file
+output_filename_clean = "amazon_research_areas_map_clean_with_town_corrected.html"
+m_clean.save(output_filename_clean)
+
+print(f"Clean map with corrected town saved to {output_filename_clean}")
+</file>
+
+<file path="strm_analysis_new.py">
+import numpy as np
+import rasterio
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+from scipy.ndimage import generic_filter, distance_transform_edt
+import os
+import logging
+import whitebox
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+try:
+    wbt = whitebox.WhiteboxTools()
+    wbt.verbose = True # Keep True for now
+    logger.info(f"WhiteboxTools initialized. Version: {wbt.version()}")
+except Exception as e:
+    logger.error(f"Failed to initialize WhiteboxTools: {e}", exc_info=True)
+    exit()
+
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+logger.info(f"Project base directory determined as: {project_base_dir}")
+
+output_wbt_subdir = 'output_data_gee_wbt'
+output_dir_wbt_abs = os.path.join(project_base_dir, output_wbt_subdir)
+os.makedirs(output_dir_wbt_abs, exist_ok=True)
+logger.info(f"Absolute output directory for WBT: {output_dir_wbt_abs}")
+
+input_dem_subdir = 'output_data_gee'
+input_dem_filename = 'gee_srtm_aoi.tif'
+actual_dem_path_abs = os.path.join(project_base_dir, input_dem_subdir, input_dem_filename)
+
+if not os.path.exists(actual_dem_path_abs):
+    logger.critical(f"CRITICAL: Input DEM file not found at {actual_dem_path_abs}.")
+    try:
+        logger.info("Attempting to create a dummy DEM as placeholder...")
+        profile_dummy = {
+            'driver': 'GTiff', 'dtype': rasterio.int16, 'nodata': -32768,
+            'width': 100, 'height': 100, 'count': 1,
+            'crs': rasterio.crs.CRS.from_epsg(4326),
+            'transform': rasterio.transform.from_origin(0, 0, 1, 1), 'compress': 'lzw'
+        }
+        dem_data_dummy = np.arange(10000, dtype=np.int16).reshape(100, 100) + 100
+        dem_data_dummy[0:10, 0:10] = -32768
+        os.makedirs(os.path.dirname(actual_dem_path_abs), exist_ok=True)
+        with rasterio.open(actual_dem_path_abs, 'w', **profile_dummy) as dst:
+            dst.write(dem_data_dummy, 1)
+        logger.info(f"Dummy DEM created at {actual_dem_path_abs}. PLEASE REPLACE WITH YOUR ACTUAL DEM.")
+    except Exception as e:
+        logger.error(f"Could not create dummy DEM. Error: {e}", exc_info=True)
+        exit()
+else:
+    logger.info(f"Using existing DEM: {actual_dem_path_abs}")
+
+# --- Define ABSOLUTE paths for intermediate and final WhiteboxTools files ---
+wbt_compatible_dem_filename = 'gee_srtm_aoi_wbt_compat.tif'
+wbt_compatible_dem_path_abs = os.path.join(output_dir_wbt_abs, wbt_compatible_dem_filename) # Store compatible DEM in WBT output dir
+
+filled_dem_path_abs = os.path.join(output_dir_wbt_abs, 'filled_dem_wbt.tif')
+d8_pointer_path_abs = os.path.join(output_dir_wbt_abs, 'd8_pointer_wbt.tif')
+facc_path_abs = os.path.join(output_dir_wbt_abs, 'facc_wbt.tif')
+streams_wbt_path_abs = os.path.join(output_dir_wbt_abs, 'streams_raw_wbt.tif')
+final_streams_path_abs = os.path.join(output_dir_wbt_abs, 'streams_gee_wbt_final.tif')
+interfluves_dist_path_abs = os.path.join(output_dir_wbt_abs, 'interfluves_by_distance_gee_wbt.tif')
+tpi_path_abs = os.path.join(output_dir_wbt_abs, 'tpi_gee_wbt.tif')
+interfluves_tpi_path_abs = os.path.join(output_dir_wbt_abs, 'interfluves_by_tpi_gee_wbt.tif')
+combined_interfluves_path_abs = os.path.join(output_dir_wbt_abs, 'combined_interfluves_gee_wbt.tif')
+
+initial_profile = None
+initial_nodata_value = None
+dem_width = None
+dem_height = None
+dem_crs = None # Store CRS for TPI output profile
+dem_transform = None # Store transform for TPI output profile
+
+try:
+    with rasterio.open(actual_dem_path_abs) as src:
+        initial_profile = src.profile # Keep original profile for reference and final outputs
+        initial_nodata_value = src.nodatavals[0] if src.nodatavals else None
+        dem_width = src.width
+        dem_height = src.height
+        dem_crs = src.crs
+        dem_transform = src.transform
+        logger.info(f"Initial DEM properties: dtype={src.dtypes[0]}, nodata={initial_nodata_value}, W={dem_width}, H={dem_height}")
+except Exception as e:
+    logger.error(f"Failed to read initial DEM properties from {actual_dem_path_abs}: {e}", exc_info=True)
+    exit()
+
+# --- Pre-process input DEM for WhiteboxTools compatibility ---
+logger.info(f"Preparing WBT-compatible DEM from {actual_dem_path_abs} to {wbt_compatible_dem_path_abs}")
+dem_input_for_wbt = "" # Initialize
+try:
+    with rasterio.open(actual_dem_path_abs) as src:
+        data = src.read(1)
+        profile_for_wbt_dem = src.profile.copy()
+        
+        # Set LZW compression for WBT compatibility
+        profile_for_wbt_dem['compress'] = 'lzw'
+        
+        # Ensure other essential tags are consistent
+        profile_for_wbt_dem.update({
+            'driver': 'GTiff',
+            'dtype': src.dtypes[0],
+            'nodata': initial_nodata_value,
+            'width': dem_width,
+            'height': dem_height,
+            'count': 1,
+            'crs': dem_crs,
+            'transform': dem_transform
+        })
+        # Remove potentially problematic tags if they exist from original profile
+        profile_for_wbt_dem.pop('photometric', None) 
+        profile_for_wbt_dem.pop('predictor', None) # Predictor might interact with LZW in ways WBT doesn't like for some data types
+
+        with rasterio.open(wbt_compatible_dem_path_abs, 'w', **profile_for_wbt_dem) as dst:
+            dst.write(data, 1)
+    logger.info(f"WBT-compatible DEM saved to {wbt_compatible_dem_path_abs} with {profile_for_wbt_dem.get('compress', 'no')} compression.")
+    dem_input_for_wbt = wbt_compatible_dem_path_abs
+except Exception as e:
+    logger.error(f"Failed to create WBT-compatible DEM: {e}", exc_info=True)
+    exit()
+
+# --- 1. Fill Depressions ---
+logger.info(f"Filling depressions with WhiteboxTools using: {dem_input_for_wbt}")
+try:
+    wbt.fill_depressions(
+        dem=dem_input_for_wbt,
+        output=filled_dem_path_abs,
+        fix_flats=True
+    )
+    logger.info(f"Depressions filled. Output: {filled_dem_path_abs}")
+except Exception as e:
+    logger.error(f"Error during WhiteboxTools FillDepressions: {e}", exc_info=True)
+    exit()
+
+# --- 2. Calculate D8 Flow Pointers ---
+logger.info("Calculating D8 flow pointers with WhiteboxTools...")
+try:
+    wbt.d8_pointer(
+        dem=filled_dem_path_abs,
+        output=d8_pointer_path_abs
+    )
+    logger.info(f"D8 flow pointers calculated. Output: {d8_pointer_path_abs}")
+except Exception as e:
+    logger.error(f"Error during WhiteboxTools D8Pointer: {e}", exc_info=True)
+    exit()
+
+# --- 3. Calculate D8 Flow Accumulation ---
+logger.info("Calculating D8 flow accumulation with WhiteboxTools...")
+try:
+    wbt.d8_flow_accumulation(
+        i=d8_pointer_path_abs,
+        output=facc_path_abs,
+        out_type="cells"
+    )
+    logger.info(f"D8 flow accumulation calculated. Output: {facc_path_abs}")
+except Exception as e:
+    logger.error(f"Error during WhiteboxTools D8FlowAccumulation: {e}", exc_info=True)
+    exit()
+
+# --- 4. Extract Stream Network ---
+logger.info("Extracting stream network with WhiteboxTools...")
+stream_threshold = 3
+try:
+    wbt.extract_streams(
+        facc_path_abs,
+        streams_wbt_path_abs,
+        threshold=stream_threshold,
+        zero_background=True
+    )
+    logger.info(f"Stream network extracted. Raw output: {streams_wbt_path_abs}")
+except Exception as e:
+    logger.error(f"Error during WhiteboxTools ExtractStreams: {e}", exc_info=True)
+    exit()
+
+# --- 5. Load Streams into NumPy array and Save with consistent metadata ---
+streams_numpy_array = None
+# Use the initial_profile as a base for streams_profile, then update
+streams_profile = initial_profile.copy() 
+intended_streams_nodata_val = 0
+
+if os.path.exists(streams_wbt_path_abs):
+    try:
+        with rasterio.open(streams_wbt_path_abs) as src:
+            streams_numpy_array = src.read(1).astype(np.uint8)
+            if streams_numpy_array.shape != (dem_height, dem_width):
+                 logger.warning(f"Stream raster shape {streams_numpy_array.shape} differs from DEM ({dem_height}, {dem_width}). This might be an issue.")
+
+            streams_profile.update({
+                'dtype': rasterio.uint8,
+                'nodata': intended_streams_nodata_val,
+                'compress': 'lzw',
+                'count': 1
+            })
+        logger.info(f"Streams raster loaded from {streams_wbt_path_abs} into NumPy array. Shape: {streams_numpy_array.shape}")
+        
+        with rasterio.open(final_streams_path_abs, 'w', **streams_profile) as dst:
+            dst.write(streams_numpy_array, 1)
+        logger.info(f"Processed streams raster saved to {final_streams_path_abs}")
+
+    except Exception as e:
+        logger.error(f"Failed to load or save processed streams raster from {streams_wbt_path_abs}: {e}", exc_info=True)
+        exit()
+else:
+    logger.error(f"WhiteboxTools stream output not found: {streams_wbt_path_abs}")
+    exit()
+
+# --- Interfluve Analysis ---
+if streams_numpy_array is not None:
+    logger.info("Starting Interfluve Analysis...")
+    logger.info("Calculating distance from streams...")
+    distance_to_streams = distance_transform_edt(1 - streams_numpy_array)
+    distance_interfluve_threshold_pixels = 15
+    interfluves_by_distance = (distance_to_streams > distance_interfluve_threshold_pixels).astype(np.uint8)
+
+    # Use streams_profile as base for uint8 outputs if suitable
+    profile_uint8_nodata0 = streams_profile.copy() 
+
+    with rasterio.open(interfluves_dist_path_abs, 'w', **profile_uint8_nodata0) as dst:
+        dst.write(interfluves_by_distance, 1)
+    logger.info(f"Interfluves by distance saved to {interfluves_dist_path_abs}")
+
+    logger.info("Calculating TPI using the filled DEM...")
+    dem_for_tpi_np = None
+    if os.path.exists(filled_dem_path_abs):
+        try:
+            with rasterio.open(filled_dem_path_abs) as src:
+                dem_for_tpi_np = src.read(1).astype(np.float32)
+                tpi_input_dem_nodata = src.nodatavals[0] if src.nodatavals else None
+                
+                logger.info(f"Filled DEM for TPI loaded from {filled_dem_path_abs}. Original dtype: {src.dtypes[0]}, nodata: {tpi_input_dem_nodata}. Converted to float32.")
+                if tpi_input_dem_nodata is not None:
+                    dem_for_tpi_np[dem_for_tpi_np == tpi_input_dem_nodata] = np.nan
+                
+        except Exception as e:
+            logger.error(f"Failed to load filled DEM for TPI from {filled_dem_path_abs}: {e}", exc_info=True)
+            exit()
+    else:
+        logger.error(f"Filled DEM file not found: {filled_dem_path_abs}. Cannot calculate TPI.")
+        exit()
+
+    if dem_for_tpi_np is not None:
+        kernel_size = 9
+        pad_width = kernel_size // 2
+        
+        dem_mask_for_tpi = np.isnan(dem_for_tpi_np)
+        
+        dem_mean_for_nan_replacement = np.nanmean(dem_for_tpi_np[~dem_mask_for_tpi]) if not np.all(dem_mask_for_tpi) else 0
+        dem_array_no_nodata = np.where(dem_mask_for_tpi, dem_mean_for_nan_replacement, dem_for_tpi_np)
+        
+        dem_padded = np.pad(dem_array_no_nodata, pad_width, mode='reflect')
+
+        mean_elevation_neighborhood = generic_filter(
+            dem_padded, np.mean, size=kernel_size, mode='reflect'
+        )
+        mean_elevation_neighborhood = mean_elevation_neighborhood[pad_width:-pad_width, pad_width:-pad_width]
+
+        tpi = dem_for_tpi_np - mean_elevation_neighborhood
+        
+        tpi_interfluve_threshold = 0.5
+        interfluves_by_tpi = np.where(np.isnan(tpi), 0, (tpi > tpi_interfluve_threshold)).astype(np.uint8)
+
+        # Use initial_profile as base for TPI output, then update for float32/NaN nodata
+        tpi_profile_out = initial_profile.copy() 
+        tpi_profile_out.update(dtype=rasterio.float32, nodata=np.float32(np.nan), compress='lzw', count=1)
+        with rasterio.open(tpi_path_abs, 'w', **tpi_profile_out) as dst:
+            dst.write(tpi.astype(rasterio.float32), 1)
+        logger.info(f"TPI raster saved to {tpi_path_abs}")
+
+        with rasterio.open(interfluves_tpi_path_abs, 'w', **profile_uint8_nodata0) as dst:
+            dst.write(interfluves_by_tpi, 1)
+        logger.info(f"Interfluves by TPI saved to {interfluves_tpi_path_abs}")
+
+        logger.info("Combining distance and TPI methods for interfluves...")
+        if interfluves_by_distance.shape == interfluves_by_tpi.shape:
+            combined_interfluves = (interfluves_by_distance & interfluves_by_tpi).astype(np.uint8)
+            with rasterio.open(combined_interfluves_path_abs, 'w', **profile_uint8_nodata0) as dst:
+                dst.write(combined_interfluves, 1)
+            logger.info(f"Combined interfluves saved to {combined_interfluves_path_abs}")
+        else:
+            logger.warning(f"Shapes of distance ({interfluves_by_distance.shape}) and TPI ({interfluves_by_tpi.shape}) interfluve arrays do not match. Skipping combination.")
+    else:
+        logger.error("Could not prepare DEM for TPI. Skipping TPI-based interfluve analysis.")
+else:
+    logger.error("streams_numpy_array is None. Processing halted before interfluve analysis.")
+
+logger.info(f"Processing complete. Check the {output_dir_wbt_abs} directory.")
+</file>
+
+<file path="strm_analysis_simple.py">
+import pysheds
+from pysheds.grid import Grid
+import numpy as np
+import rasterio
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+from scipy.ndimage import generic_filter, distance_transform_edt
+import matplotlib.pyplot as plt
+import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+output_dir = 'output_data_gee/'
+os.makedirs(output_dir, exist_ok=True)
+actual_dem_path_for_pysheds = os.path.join(output_dir, 'gee_srtm_aoi.tif')
+
+if not os.path.exists(actual_dem_path_for_pysheds):
+    logger.critical(f"CRITICAL: DEM file not found at {actual_dem_path_for_pysheds}")
+    exit()
+
+logger.info(f"Starting PySheds (sGrid - flowdir.nodata=None for acc) using: {actual_dem_path_for_pysheds}")
+
+grid = Grid()
+logger.debug(f"Initial grid.nodata: {grid.nodata} (type: {type(grid.nodata)})")
+
+dem_raster_view = grid.read_raster(actual_dem_path_for_pysheds, data_name='dem')
+logger.info(f"DEM loaded. Type: {type(dem_raster_view)}")
+logger.debug(f"dem_raster_view properties: dtype={dem_raster_view.dtype}, nodata={getattr(dem_raster_view, 'nodata', 'N/A')}")
+
+# Set grid.nodata from the input DEM (important for fill_depressions context)
+if hasattr(dem_raster_view, 'nodata') and dem_raster_view.nodata is not None:
+    grid.nodata = dem_raster_view.nodata
+else: # Fallback for SRTM int16 if needed
+    if dem_raster_view.dtype == np.int16: grid.nodata = np.int16(-32768)
+    else: grid.nodata = np.array(0, dtype=dem_raster_view.dtype).item() if dem_raster_view.dtype else 0
+logger.info(f"Grid properties after read_raster: Nodata={grid.nodata} (type: {type(grid.nodata)})")
+
+
+logger.info("Filling depressions...")
+flooded_dem_raster_view = grid.fill_depressions(dem=dem_raster_view, out_name='flooded_dem')
+logger.info(f"Depressions filled. Output type: {type(flooded_dem_raster_view)}")
+logger.debug(f"flooded_dem_raster_view properties: dtype={flooded_dem_raster_view.dtype}, nodata={getattr(flooded_dem_raster_view, 'nodata', 'N/A')}")
+
+
+logger.info("Calculating flow direction...")
+fdir_raster_view = None
+if flooded_dem_raster_view is not None:
+    grid_nodata_backup_fdir = grid.nodata # Backup main grid nodata
+    # For flowdir output, its sview.Raster is created using main grid's current nodata context.
+    # We will set nodata_out=None for fdir_raster_view itself.
+    # The temporary grid.nodata is for the sview.Raster constructor of fdir output.
+    # If fdir output data itself does not have nodata, then grid.nodata=None might be best.
+    
+    logger.debug(f"Temporarily setting grid.nodata to None for FLOWDIR output context.")
+    grid.nodata = None # Try None for the output viewfinder context
+    try:
+        # Set nodata_out=None for the fdir_raster_view's own .nodata attribute
+        fdir_raster_view = grid.flowdir(dem=flooded_dem_raster_view, out_name='fdir', nodata_out=None)
+        logger.info(f"Flow direction calculated. Output type: {type(fdir_raster_view)}")
+        logger.debug(f"fdir_raster_view properties: dtype={fdir_raster_view.dtype}, nodata={getattr(fdir_raster_view, 'nodata', 'N/A')}")
+        # We expect fdir_raster_view.nodata to be None
+    except Exception as e:
+        logger.error(f"Error during grid.flowdir: {e}", exc_info=True)
+        raise
+    finally:
+        grid.nodata = grid_nodata_backup_fdir # Restore
+        logger.debug(f"Restored grid.nodata to: {grid.nodata} (type: {type(grid.nodata)})")
+else:
+    logger.error("Flooded DEM is None.")
+    exit()
+
+
+logger.info("Calculating flow accumulation...")
+acc_raster_view = None
+if fdir_raster_view is not None:
+    logger.debug(f"Input to accumulation (fdir_raster_view): dtype={fdir_raster_view.dtype}, nodata={getattr(fdir_raster_view, 'nodata', 'N/A')}")
+    # Accumulation output sview.Raster uses fdir_raster_view.viewfinder.
+    # If fdir_raster_view.nodata is None, the np.can_cast check in sview.Raster.__new__ should be skipped.
+    try:
+        grid.accumulation(fdir=fdir_raster_view, out_name='acc')
+        logger.info(f"Flow accumulation calculated.")
+        acc_raster_view = grid.get_data('acc', return_sview=True)
+        logger.info(f"Accumulation accessed. Output type: {type(acc_raster_view)}")
+        logger.debug(f"acc_raster_view properties: dtype={acc_raster_view.dtype}, nodata={getattr(acc_raster_view, 'nodata', 'N/A')}")
+    except Exception as e:
+        logger.error(f"Error during/after grid.accumulation: {e}", exc_info=True)
+        raise
+else:
+    logger.error("Flow direction is None.")
+    exit()
+
+
+logger.info("Extracting stream network...")
+streams_raster_view = None
+if acc_raster_view is not None and fdir_raster_view is not None :
+    grid_nodata_backup_streams = grid.nodata
+    streams_out_nodata_typed = np.uint8(0)
+    
+    logger.debug(f"Temporarily setting grid.nodata to {streams_out_nodata_typed} (type {type(streams_out_nodata_typed)}) for STREAMS output context.")
+    grid.nodata = streams_out_nodata_typed
+    try:
+        grid.extract_river_network(fdir=fdir_raster_view, acc=acc_raster_view, threshold=1000, out_name='streams')
+        logger.info(f"Stream network extracted.")
+        streams_raster_view = grid.get_data('streams', return_sview=True)
+        logger.info(f"Streams accessed. Output type: {type(streams_raster_view)}")
+        logger.debug(f"streams_raster_view properties: dtype={streams_raster_view.dtype}, nodata={getattr(streams_raster_view, 'nodata', 'N/A')}")
+    except Exception as e:
+        logger.error(f"Error during/after grid.extract_river_network: {e}", exc_info=True)
+        raise
+    finally:
+        grid.nodata = grid_nodata_backup_streams
+        logger.debug(f"Restored grid.nodata to: {grid.nodata} (type: {type(grid.nodata)})")
+else:
+    logger.error("Accumulation or Flow Direction is None. Cannot extract streams.")
+    exit()
+
+if streams_raster_view is not None:
+    logger.info("Preparing to save streams raster...")
+    streams_numpy_array = None
+    intended_streams_nodata_val = streams_out_nodata_typed.item()
+
+    if hasattr(streams_raster_view, 'filled'):
+        streams_numpy_array = streams_raster_view.filled(intended_streams_nodata_val).astype(np.uint8)
+    elif isinstance(streams_raster_view, np.ndarray):
+        streams_numpy_array = streams_raster_view.astype(np.uint8)
+    
+    if streams_numpy_array is not None:
+        streams_path = os.path.join(output_dir, 'streams_gee.tif')
+        profile = {
+            'driver': 'GTiff', 'dtype': rasterio.uint8, 'nodata': intended_streams_nodata_val,
+            'width': grid.shape[1], 'height': grid.shape[0], 'count': 1,
+            'crs': grid.crs, 'transform': grid.affine, 'compress': 'lzw'
+        }
+        with rasterio.open(streams_path, 'w', **profile) as dst:
+            dst.write(streams_numpy_array, 1)
+        logger.info(f"Streams raster saved to {streams_path}")
+
+        logger.info("Starting Interfluve Analysis...")
+        # ... (Interfluve analysis code as in the previous full script) ...
+        logger.info("Calculating distance from streams...")
+        binary_streams = (streams_numpy_array > 0).astype(np.uint8)
+        distance_to_streams = distance_transform_edt(1 - binary_streams)
+        distance_interfluve_threshold_pixels = 15
+        interfluves_by_distance = (distance_to_streams > distance_interfluve_threshold_pixels).astype(np.uint8)
+
+        interfluves_dist_path = os.path.join(output_dir, 'interfluves_by_distance_gee.tif')
+        profile_uint8_nodata0 = profile.copy()
+        profile_uint8_nodata0['nodata'] = 0
+        profile_uint8_nodata0['dtype'] = rasterio.uint8
+
+        with rasterio.open(interfluves_dist_path, 'w', **profile_uint8_nodata0) as dst:
+            dst.write(interfluves_by_distance, 1)
+        logger.info(f"Interfluves by distance saved to {interfluves_dist_path}")
+
+        logger.info("Calculating TPI...")
+        dem_original_nodata_val = grid.nodata.item() if hasattr(grid.nodata, 'item') else grid.nodata
+        
+        dem_numpy_array_for_tpi = None
+        if hasattr(dem_raster_view, 'filled'):
+            dem_numpy_array_for_tpi = dem_raster_view.filled(dem_original_nodata_val).astype(np.float32)
+        elif isinstance(dem_raster_view, np.ndarray):
+            dem_numpy_array_for_tpi = dem_raster_view.astype(np.float32)
+        
+        if dem_numpy_array_for_tpi is None:
+            logger.error("Could not get NumPy array from dem_raster_view for TPI.")
+            exit("Failed to get DEM NumPy array for TPI.")
+
+        tpi_profile_base = {
+            'driver': 'GTiff', 'width': grid.shape[1], 'height': grid.shape[0],
+            'count': 1, 'crs': grid.crs, 'transform': grid.affine, 'compress': 'lzw'
+        }
+        kernel_size = 9
+        pad_width = kernel_size // 2
+        
+        dem_mask_for_tpi = (dem_numpy_array_for_tpi == dem_original_nodata_val)
+        valid_dem_pixels = dem_numpy_array_for_tpi[~dem_mask_for_tpi]
+        dem_mean_for_nan_replacement = np.mean(valid_dem_pixels) if valid_dem_pixels.size > 0 else 0
+        dem_array_no_nodata = np.where(dem_mask_for_tpi, dem_mean_for_nan_replacement, dem_numpy_array_for_tpi)
+        dem_array_no_nodata = np.nan_to_num(dem_array_no_nodata, nan=dem_mean_for_nan_replacement)
+        dem_padded = np.pad(dem_array_no_nodata, pad_width, mode='reflect')
+
+        mean_elevation_neighborhood = generic_filter(
+            dem_padded, np.mean, size=kernel_size, mode='reflect'
+        )
+        mean_elevation_neighborhood = mean_elevation_neighborhood[pad_width:-pad_width, pad_width:-pad_width]
+
+        tpi = dem_numpy_array_for_tpi - mean_elevation_neighborhood
+        tpi[dem_mask_for_tpi] = np.nan
+
+        tpi_interfluve_threshold = 0.5
+        interfluves_by_tpi = np.where(np.isnan(tpi), 0, (tpi > tpi_interfluve_threshold)).astype(np.uint8)
+
+        tpi_path = os.path.join(output_dir, 'tpi_gee.tif')
+        interfluves_tpi_path = os.path.join(output_dir, 'interfluves_by_tpi_gee.tif')
+        
+        tpi_profile_out = tpi_profile_base.copy()
+        tpi_profile_out.update(dtype=rasterio.float32, nodata=np.float32(np.nan))
+        with rasterio.open(tpi_path, 'w', **tpi_profile_out) as dst:
+            dst.write(tpi.astype(rasterio.float32), 1)
+
+        interfluve_tpi_profile_out = profile_uint8_nodata0.copy()
+        with rasterio.open(interfluves_tpi_path, 'w', **interfluve_tpi_profile_out) as dst:
+            dst.write(interfluves_by_tpi, 1)
+        logger.info(f"TPI saved to {tpi_path}")
+        logger.info(f"Interfluves by TPI saved to {interfluves_tpi_path}")
+
+        logger.info("Combining distance and TPI methods for interfluves...")
+        if interfluves_by_distance.shape == interfluves_by_tpi.shape:
+            combined_interfluves = (interfluves_by_distance & interfluves_by_tpi).astype(np.uint8)
+            combined_interfluves_path = os.path.join(output_dir, 'combined_interfluves_gee.tif')
+            with rasterio.open(combined_interfluves_path, 'w', **profile_uint8_nodata0) as dst:
+                dst.write(combined_interfluves, 1)
+            logger.info(f"Combined interfluves saved to {combined_interfluves_path}")
+        else:
+            logger.warning("Shapes of distance and TPI interfluve arrays do not match. Skipping combination.")
+
+    else:
+        logger.error("Failed to prepare streams_numpy_array. Cannot save or do interfluve analysis.")
+else:
+    logger.error("streams_raster_view is None. Processing halted before saving streams.")
+
+logger.info("Processing complete. Check the output_data_gee directory.")
+</file>
+
+<file path="strm_analysis.py">
+import pysheds
+from pysheds.grid import Grid
+import numpy as np
+import rasterio
+import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+output_dir = 'output_data_gee/'
+os.makedirs(output_dir, exist_ok=True)
+actual_dem_path_for_pysheds = os.path.join(output_dir, 'gee_srtm_aoi.tif')
+
+if not os.path.exists(actual_dem_path_for_pysheds):
+    logger.critical(f"CRITICAL: DEM file not found at {actual_dem_path_for_pysheds}")
+    exit()
+
+logger.info(f"Starting hydrological analysis with PySheds (sGrid - fdir consistency for acc) using: {actual_dem_path_for_pysheds}")
+
+grid = Grid()
+logger.debug(f"Initial grid.nodata: {grid.nodata} (type: {type(grid.nodata)}), grid.dtype: {getattr(grid, 'dtype', 'N/A')}")
+
+logger.info(f"Loading DEM from {actual_dem_path_for_pysheds}...")
+dem_raster_view = grid.read_raster(actual_dem_path_for_pysheds, data_name='dem_initial')
+logger.info(f"DEM RasterView loaded. Type: {type(dem_raster_view)}")
+logger.debug(f"dem_raster_view.dtype: {dem_raster_view.dtype}, dem_raster_view.nodata (direct): {getattr(dem_raster_view, 'nodata', 'N/A')}")
+
+if hasattr(dem_raster_view, 'nodata') and dem_raster_view.nodata is not None:
+    grid.nodata = dem_raster_view.nodata
+    logger.debug(f"Set grid.nodata from dem_raster_view.nodata: {grid.nodata} (type: {type(grid.nodata)})")
+else:
+    if dem_raster_view.dtype == np.int16: # Default for SRTM if nodata was None
+        grid.nodata = np.int16(-32768)
+        logger.debug(f"dem_raster_view.nodata was problematic, set grid.nodata to default SRTM: {grid.nodata} (type: {type(grid.nodata)})")
+    else: # Fallback to a dtype-appropriate zero or let PySheds handle
+        grid.nodata = np.array(0, dtype=dem_raster_view.dtype).item() if dem_raster_view.dtype else 0
+        logger.debug(f"dem_raster_view.nodata was problematic, set grid.nodata to typed zero: {grid.nodata} (type: {type(grid.nodata)})")
+
+
+if hasattr(dem_raster_view, 'dtype'):
+    grid.dtype = dem_raster_view.dtype
+    logger.debug(f"Set grid.dtype from dem_raster_view.dtype: {grid.dtype}")
+
+logger.info(f"Grid properties after read_raster & updates: Shape: {grid.shape}, Affine: {grid.affine}, Nodata: {grid.nodata}, CRS: {grid.crs}, Dtype: {grid.dtype}")
+
+logger.info("Filling depressions...")
+flooded_dem_raster_view = grid.fill_depressions(dem=dem_raster_view, out_name='flooded_dem')
+logger.info(f"Depressions filled. Returned type: {type(flooded_dem_raster_view)}")
+logger.debug(f"flooded_dem_raster_view.dtype: {flooded_dem_raster_view.dtype}, .nodata: {getattr(flooded_dem_raster_view, 'nodata', 'N/A')}")
+
+logger.info("Calculating flow direction...")
+fdir_raster_view = None
+if flooded_dem_raster_view is not None:
+    grid_nodata_backup_fdir = grid.nodata
+    grid_dtype_backup_fdir = grid.dtype
+    
+    # PySheds sGrid seems to make fdir output int64. Let's align with that.
+    # The nodata for fdir (0) should also be int64 to match fdir_raster_view.dtype.
+    flowdir_output_nodata_typed = np.int64(0)
+    # Temporarily set grid.dtype to match the *expected output dtype of fdir_raster_view* if known,
+    # or a common type like int64 if sGrid is defaulting to it.
+    # Let's assume sGrid will make fdir int64, so make grid context compatible.
+    flowdir_internal_dtype = np.int64 # Based on previous log output for fdir_raster_view.dtype
+    
+    logger.debug(f"Temporarily setting grid.nodata to {flowdir_output_nodata_typed} (type {type(flowdir_output_nodata_typed)}) and grid.dtype to {flowdir_internal_dtype} for flowdir.")
+    grid.nodata = flowdir_output_nodata_typed
+    grid.dtype = flowdir_internal_dtype # Make grid context match expected fdir output
+    try:
+        # Pass nodata_out as the same type as grid.nodata (which is now int64(0))
+        fdir_raster_view = grid.flowdir(dem=flooded_dem_raster_view, out_name='fdir', nodata_out=flowdir_output_nodata_typed)
+        logger.info(f"Flow direction calculated. Returned type: {type(fdir_raster_view)}")
+        logger.debug(f"fdir_raster_view.dtype: {fdir_raster_view.dtype}, .nodata: {getattr(fdir_raster_view, 'nodata', 'N/A')}")
+        # We expect fdir_raster_view.dtype to be int64 and .nodata to be int64(0)
+    except Exception as e:
+        logger.error(f"Error during grid.flowdir: {e}", exc_info=True)
+        raise
+    finally:
+        grid.nodata = grid_nodata_backup_fdir
+        grid.dtype = grid_dtype_backup_fdir
+        logger.debug(f"Restored grid.nodata to: {grid.nodata} (type: {type(grid.nodata)}), grid.dtype to: {grid.dtype}")
+else:
+    logger.warning("Skipping flow direction as flooded_dem_raster_view is None.")
+    exit("Flow direction failed.")
+
+
+logger.info("Calculating flow accumulation...")
+acc_raster_view = None
+if fdir_raster_view is not None:
+    # No temporary changes to grid.nodata/dtype here, as accumulation's output sview.Raster
+    # is created using fdir_raster_view.viewfinder.
+    # We need fdir_raster_view.nodata and fdir_raster_view.dtype to be self-consistent
+    # and for fdir_raster_view.nodata to be castable to accumulation's output dtype.
+    logger.debug(f"grid.nodata before accumulation: {grid.nodata} (type: {type(grid.nodata)}), grid.dtype: {grid.dtype}")
+    logger.debug(f"USING fdir_raster_view for accumulation input: dtype={fdir_raster_view.dtype}, nodata={getattr(fdir_raster_view, 'nodata', 'N/A')}")
+
+    try:
+        grid.accumulation(fdir=fdir_raster_view, out_name='acc')
+        logger.info(f"Flow accumulation calculated.")
+        acc_raster_view = grid.get_data('acc', return_sview=True)
+        logger.info(f"Accessed 'acc' via grid.get_data(), type: {type(acc_raster_view)}")
+        logger.debug(f"acc_raster_view.dtype: {acc_raster_view.dtype}, .nodata: {getattr(acc_raster_view, 'nodata', 'N/A')}")
+    except Exception as e:
+        logger.error(f"Error during/after grid.accumulation: {e}", exc_info=True)
+        raise
+else:
+    logger.warning("Skipping flow accumulation as fdir_raster_view was not created or is None.")
+    exit("Accumulation failed.")
+
+# ... (Rest of the script for stream extraction and saving) ...
+# Apply similar logic for temporary grid.nodata/dtype before extract_river_network if needed.
+# Its output is uint8, nodata=0.
+logger.info("Extracting stream network with threshold: 1000...")
+streams_raster_view = None
+if acc_raster_view is not None:
+    grid_nodata_backup_streams = grid.nodata
+    grid_dtype_backup_streams = grid.dtype
+    streams_output_nodata_typed = np.uint8(0)
+    streams_output_dtype = np.uint8
+
+    logger.debug(f"Temporarily setting grid.nodata to {streams_output_nodata_typed} and grid.dtype to {streams_output_dtype} for streams.")
+    grid.nodata = streams_output_nodata_typed
+    grid.dtype = streams_output_dtype
+    try:
+        # extract_river_network uses fdir_raster_view and acc_raster_view.
+        # Its output sview.Raster is created using the main grid's current viewfinder (nodata/dtype).
+        grid.extract_river_network(fdir=fdir_raster_view, acc=acc_raster_view, threshold=1000, out_name='streams')
+        logger.info(f"Stream network extracted.")
+        streams_raster_view = grid.get_data('streams', return_sview=True)
+        logger.info(f"Accessed 'streams' via grid.get_data(), type: {type(streams_raster_view)}")
+        logger.debug(f"streams_raster_view.dtype: {streams_raster_view.dtype}, .nodata: {getattr(streams_raster_view, 'nodata', 'N/A')}")
+
+        if streams_raster_view is not None:
+            streams_path = os.path.join(output_dir, 'streams_gee.tif')
+            profile = {
+                'driver': 'GTiff', 'dtype': rasterio.uint8, 'nodata': streams_output_nodata_typed.item(),
+                'width': grid.shape[1], 'height': grid.shape[0], 'count': 1,
+                'crs': grid.crs, 'transform': grid.affine, 'compress': 'lzw'
+            }
+            if hasattr(streams_raster_view, 'filled'):
+                data_to_save = streams_raster_view.filled(streams_output_nodata_typed.item()).astype(np.uint8)
+            elif isinstance(streams_raster_view, np.ndarray):
+                data_to_save = streams_raster_view.astype(np.uint8)
+            else:
+                logger.error(f"Could not convert streams_raster_view to a savable NumPy array.")
+                data_to_save = None
+
+            if data_to_save is not None:
+                with rasterio.open(streams_path, 'w', **profile) as dst:
+                    dst.write(data_to_save, 1)
+                logger.info(f"Streams raster saved to {streams_path}")
+    except Exception as e:
+        logger.error(f"Error obtaining or saving 'streams' data: {e}", exc_info=True)
+        raise
+    finally:
+        grid.nodata = grid_nodata_backup_streams
+        grid.dtype = grid_dtype_backup_streams
+        logger.debug(f"Restored grid.nodata to: {grid.nodata}, grid.dtype to: {grid.dtype}")
+else:
+    logger.warning("Skipping stream extraction as acc_raster_view was not obtained or is None.")
+    exit("Stream extraction failed.")
+
+logger.info("Processing attempt finished. Moving to Interfluve Analysis.")
+# ... (Interfluve analysis part from your original script, ensuring it uses streams_numpy_array)
+
+# Ensure streams_numpy_array is defined from streams_raster_view before this section
+if streams_raster_view is not None:
+    if hasattr(streams_raster_view, 'filled'):
+        streams_numpy_array = streams_raster_view.filled(0).astype(np.uint8)
+    elif isinstance(streams_raster_view, np.ndarray):
+        streams_numpy_array = streams_raster_view.astype(np.uint8)
+    else:
+        logger.error("streams_raster_view is invalid for interfluve analysis.")
+        exit("Cannot proceed to interfluve analysis.")
+else:
+    logger.error("streams_raster_view is None, cannot proceed to interfluve analysis.")
+    exit("Stream network data is not available for interfluve analysis.")
+
+# --- 4. Identify Interfluve Zones ---
+# (Copied from your original script, assuming streams_numpy_array is correctly populated)
+logger.info("Calculating distance from streams...")
+binary_streams = (streams_numpy_array > 0).astype(np.uint8)
+distance_to_streams = distance_transform_edt(1 - binary_streams)
+distance_interfluve_threshold_pixels = 15
+interfluves_by_distance = (distance_to_streams > distance_interfluve_threshold_pixels).astype(np.uint8)
+
+interfluves_dist_path = os.path.join(output_dir, 'interfluves_by_distance_gee.tif')
+profile_uint8_nodata0 = { # Define a suitable profile for these binary outputs
+    'driver': 'GTiff', 'dtype': rasterio.uint8, 'nodata': 0,
+    'width': grid.shape[1], 'height': grid.shape[0], 'count': 1,
+    'crs': grid.crs, 'transform': grid.affine, 'compress': 'lzw'
+}
+with rasterio.open(interfluves_dist_path, 'w', **profile_uint8_nodata0) as dst:
+    dst.write(interfluves_by_distance, 1)
+logger.info(f"Interfluves by distance saved to {interfluves_dist_path}")
+
+
+logger.info("Calculating TPI...")
+if hasattr(dem_raster_view, 'filled'):
+    dem_numpy_array_for_tpi = dem_raster_view.filled(grid.nodata.item()).astype(np.float32)
+elif isinstance(dem_raster_view, np.ndarray):
+    dem_numpy_array_for_tpi = dem_raster_view.astype(np.float32)
+else:
+    logger.error("Could not get NumPy array from dem_raster_view for TPI.")
+    exit("Failed to get DEM NumPy array for TPI.")
+
+tpi_profile_base = {
+    'driver': 'GTiff', 'width': grid.shape[1], 'height': grid.shape[0],
+    'count': 1, 'crs': grid.crs, 'transform': grid.affine, 'compress': 'lzw'
+}
+kernel_size = 9
+pad_width = kernel_size // 2
+# Ensure grid.nodata.item() is used if grid.nodata is a numpy scalar
+dem_nodata_val_for_tpi = grid.nodata.item() if hasattr(grid.nodata, 'item') else grid.nodata
+dem_array_no_nan = np.nan_to_num(dem_numpy_array_for_tpi, nan=np.nanmean(dem_numpy_array_for_tpi[dem_numpy_array_for_tpi != dem_nodata_val_for_tpi]))
+
+dem_padded = np.pad(dem_array_no_nan, pad_width, mode='reflect')
+
+def mean_filter_nan_aware(arr):
+    valid_arr = arr[~np.isnan(arr)]
+    if valid_arr.size == 0: return np.nan
+    return np.mean(valid_arr)
+
+mean_elevation_neighborhood = generic_filter(
+    dem_padded, mean_filter_nan_aware, size=kernel_size, mode='constant', cval=np.nan
+)
+mean_elevation_neighborhood = mean_elevation_neighborhood[pad_width:-pad_width, pad_width:-pad_width]
+
+tpi = dem_numpy_array_for_tpi - mean_elevation_neighborhood
+tpi_interfluve_threshold = 0.5
+interfluves_by_tpi = np.where(np.isnan(tpi), 0, (tpi > tpi_interfluve_threshold)).astype(np.uint8)
+
+tpi_path = os.path.join(output_dir, 'tpi_gee.tif')
+interfluves_tpi_path = os.path.join(output_dir, 'interfluves_by_tpi_gee.tif')
+
+tpi_profile_out = tpi_profile_base.copy()
+tpi_profile_out.update(dtype=rasterio.float32, nodata=np.float32(np.nan))
+with rasterio.open(tpi_path, 'w', **tpi_profile_out) as dst:
+    dst.write(tpi.astype(rasterio.float32), 1)
+
+interfluve_tpi_profile_out = profile_uint8_nodata0.copy() # Use the uint8 profile
+with rasterio.open(interfluves_tpi_path, 'w', **interfluve_tpi_profile_out) as dst:
+    dst.write(interfluves_by_tpi, 1)
+logger.info(f"TPI saved to {tpi_path}")
+logger.info(f"Interfluves by TPI saved to {interfluves_tpi_path}")
+
+logger.info("Combining distance and TPI methods for interfluves...")
+if interfluves_by_distance.shape == interfluves_by_tpi.shape:
+    combined_interfluves = (interfluves_by_distance & interfluves_by_tpi).astype(np.uint8)
+    combined_interfluves_path = os.path.join(output_dir, 'combined_interfluves_gee.tif')
+    with rasterio.open(combined_interfluves_path, 'w', **profile_uint8_nodata0) as dst: # Use uint8 profile
+        dst.write(combined_interfluves, 1)
+    logger.info(f"Combined interfluves saved to {combined_interfluves_path}")
+else:
+    logger.warning("Shapes of distance and TPI interfluve arrays do not match. Skipping combination.")
+
+logger.info("Processing complete. Check the output_data_gee directory.")
+</file>
+
+<file path="visualize_rasters.py">
+import rasterio
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+processed_tiffs_dir = os.path.join(project_base_dir, 'output_data_gee_wbt')
+output_images_dir = os.path.join(project_base_dir, 'output_images')
+os.makedirs(output_images_dir, exist_ok=True)
+
+# --- Helper Function to Plot and Save ---
+def visualize_raster(tiff_path, output_image_path, title, cmap='viridis', vmin_user=None, vmax_user=None, is_binary=False, log_scale_facc=False):
+    """
+    Reads a GeoTIFF, visualizes it, and saves it as a PNG.
+    Uses vmin_user and vmax_user for user-specified limits.
+    """
+    if not os.path.exists(tiff_path):
+        logger.error(f"TIFF file not found: {tiff_path}")
+        return
+
+    try:
+        with rasterio.open(tiff_path) as src:
+            data = src.read(1)
+            nodata_val = src.nodatavals[0] if src.nodatavals else None
+
+            if nodata_val is not None:
+                if np.issubdtype(data.dtype, np.floating) and np.isnan(nodata_val):
+                    masked_data = np.ma.masked_where(np.isnan(data), data)
+                else:
+                    masked_data = np.ma.masked_equal(data, nodata_val)
+            else:
+                masked_data = data
+
+            fig, ax = plt.subplots(1, 1, figsize=(12, 10)) # Slightly wider for colorbar
+            
+            current_vmin = vmin_user
+            current_vmax = vmax_user
+
+            if is_binary:
+                im = ax.imshow(masked_data, cmap='gray_r', vmin=0, vmax=1)
+            elif log_scale_facc and 'facc' in tiff_path.lower():
+                # Apply log transformation for flow accumulation
+                # Fill masked (nodata) values with 0 before log1p to avoid issues with mask
+                plot_data_log = np.log1p(np.maximum(0, masked_data.filled(0))) 
+                
+                # If vmin_user/vmax_user not specified for FACC, calculate from percentiles
+                if vmin_user is None or vmax_user is None:
+                    # Calculate percentiles on the log-transformed data, excluding true zeros if they dominate
+                    valid_log_data = plot_data_log[plot_data_log > np.log1p(0) + 1e-9] # Exclude values very close to log1p(0)
+                    if valid_log_data.size > 20: # Ensure enough data points for robust percentiles
+                        current_vmin = np.percentile(valid_log_data, 2)  # e.g., 2nd percentile as min
+                        current_vmax = np.percentile(valid_log_data, 98) # e.g., 98th percentile as max
+                        # Ensure vmin is not greater than vmax (can happen if data is very flat)
+                        if current_vmin >= current_vmax :
+                            current_vmin = valid_log_data.min()
+                            current_vmax = valid_log_data.max()
+                        if current_vmin == current_vmax: # If still equal (e.g. mostly one value) add a small range
+                            current_vmax = current_vmin + 1 
+                    elif plot_data_log.size > 0 : # Fallback for fewer points
+                        current_vmin = plot_data_log.min()
+                        current_vmax = plot_data_log.max()
+                        if current_vmin == current_vmax:
+                            current_vmax = current_vmin + 1
+                    else: # All data was zero or nodata
+                        current_vmin = np.log1p(0)
+                        current_vmax = np.log1p(1)
+                    logger.debug(f"FACC '{title}': auto vmin_log={current_vmin:.2f}, vmax_log={current_vmax:.2f}")
+
+                im = ax.imshow(plot_data_log, cmap=cmap, vmin=current_vmin, vmax=current_vmax)
+            else:
+                im = ax.imshow(masked_data, cmap=cmap, vmin=current_vmin, vmax=current_vmax)
+            
+            ax.set_title(title, fontsize=14)
+            ax.set_axis_off()
+            
+            # Add colorbar
+            # Create an axes for the colorbar on the right side
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.1)
+            cb = fig.colorbar(im, cax=cax)
+            cb.ax.tick_params(labelsize=10)
+
+
+            plt.tight_layout(rect=[0, 0, 0.95, 1]) # Adjust rect to prevent title overlap with suptitle if used
+            plt.savefig(output_image_path, dpi=150, bbox_inches='tight')
+            plt.close(fig)
+            logger.info(f"Saved visualization: {output_image_path}")
+
+    except Exception as e:
+        logger.error(f"Failed to visualize {tiff_path}: {e}", exc_info=True)
+
+# --- List of TIFFs to Visualize ---
+tiffs_to_visualize = [
+    {"name": "gee_srtm_aoi_wbt_compat.tif", "title": "WBT-Compatible DEM (Input)", "cmap": "terrain"},
+    {"name": "filled_dem_wbt.tif", "title": "Filled DEM", "cmap": "terrain"},
+    {"name": "d8_pointer_wbt.tif", "title": "D8 Flow Pointers", "cmap": "viridis"},
+    {"name": "facc_wbt.tif", "title": "Flow Accumulation (Log Scale)", "cmap": "Blues", "log_scale_facc": True}, # vmin/vmax will be auto-calculated
+    {"name": "streams_gee_wbt_final.tif", "title": "Final Extracted Streams", "is_binary": True},
+    {"name": "interfluves_by_distance_gee_wbt.tif", "title": "Interfluves by Distance", "is_binary": True},
+    {"name": "tpi_gee_wbt.tif", "title": "Topographic Position Index (TPI)", "cmap": "RdBu_r", "vmin_user":-2, "vmax_user":2},
+    {"name": "interfluves_by_tpi_gee_wbt.tif", "title": "Interfluves by TPI", "is_binary": True},
+    {"name": "combined_interfluves_gee_wbt.tif", "title": "Combined Interfluves", "is_binary": True},
+]
+
+# --- Main Loop ---
+if __name__ == "__main__":
+    logger.info(f"Looking for TIFFs in: {processed_tiffs_dir}")
+    logger.info(f"Saving output images to: {output_images_dir}")
+
+    for item in tiffs_to_visualize:
+        tiff_file_path = os.path.join(processed_tiffs_dir, item["name"])
+        output_png_path = os.path.join(output_images_dir, os.path.splitext(item["name"])[0] + ".png")
+        
+        visualize_raster(
+            tiff_file_path,
+            output_png_path,
+            item["title"],
+            cmap=item.get("cmap", 'viridis'),
+            vmin_user=item.get("vmin_user"), # Pass user-defined vmin
+            vmax_user=item.get("vmax_user"), # Pass user-defined vmax
+            is_binary=item.get("is_binary", False),
+            log_scale_facc=item.get("log_scale_facc", False)
+        )
+    
+    logger.info("Visualization script finished.")
+</file>
+
+<file path="amazon_archaeology_map/create_map.py">
+import pandas as pd
+import numpy as np
+import folium
+from folium import plugins
+from pyproj import Transformer
+import rasterio
+from rasterio.warp import transform_bounds
+import os
+import matplotlib.pyplot as plt
+from scipy.ndimage import binary_dilation
+
+# --- Configuration ---
+project_base_dir = os.path.dirname(os.path.abspath(__file__))
+ARCHAEOLOGICAL_DATA_FOLDER = os.path.join(project_base_dir, "data")
+MAP_CENTER_ARCH = [-10.0, -67.0]
+MAP_ZOOM_ARCH = 4
+RASTER_DATA_FOLDER = os.path.join(project_base_dir, 'output_data_gee_wbt')
+REFERENCE_BOUNDS_TIFF_PATH = os.path.join(RASTER_DATA_FOLDER, 'gee_srtm_aoi_wbt_compat.tif')
+OVERLAY_SOURCE_TIFF_PATH = os.path.join(RASTER_DATA_FOLDER, 'combined_interfluves_gee_wbt.tif') # Ensure this is your interfluve map
+OUTPUT_DIR = os.path.join(project_base_dir, 'output_images')
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+OUTPUT_HTML_MAP = os.path.join(OUTPUT_DIR, "combined_archaeology_raster_map.html")
+TEMP_OVERLAY_PNG_PATH = os.path.join(OUTPUT_DIR, "temp_raster_overlay.png")
+OVERLAY_COLOR_BINARY = (255, 0, 255)
+OVERLAY_ALPHA_BINARY = 200
+DILATION_AMOUNT_BINARY = 3
+TPI_ALPHA = 180
+
+# --- Helper: UTM to Lat/Lon ---
+def utm_to_latlon(utm_x, utm_y, utm_zone=19, hemisphere='south'):
+    utm_crs_code = 32600 + utm_zone if hemisphere == 'north' else 32700 + utm_zone
+    utm_crs = f"EPSG:{utm_crs_code}"
+    wgs84_crs = "EPSG:4326"
+    transformer = Transformer.from_crs(utm_crs, wgs84_crs, always_xy=True)
+    lon, lat = transformer.transform(utm_x, utm_y)
+    return lat, lon
+
+# --- Archaeological Data Reading Functions ---
+def read_arch_data(filepath, source_name, utm_conversion_params=None, lat_col='latitude', lon_col='longitude', extra_processing_func=None):
+    try:
+        df = pd.read_csv(filepath)
+        if utm_conversion_params:
+            lats, lons = [], []
+            for _, row in df.iterrows():
+                if pd.notna(row[utm_conversion_params['x_col']]) and pd.notna(row[utm_conversion_params['y_col']]):
+                    lat, lon = utm_to_latlon(
+                        row[utm_conversion_params['x_col']],
+                        row[utm_conversion_params['y_col']],
+                        utm_zone=utm_conversion_params['zone'],
+                        hemisphere=utm_conversion_params.get('hemisphere', 'south')
+                    )
+                    lats.append(lat); lons.append(lon)
+                else:
+                    lats.append(np.nan); lons.append(np.nan)
+            df['latitude'] = lats
+            df['longitude'] = lons
+        elif lat_col not in df.columns or lon_col not in df.columns:
+            if 'y' in df.columns and 'x' in df.columns:
+                df['latitude'] = pd.to_numeric(df['y'], errors='coerce')
+                df['longitude'] = pd.to_numeric(df['x'], errors='coerce')
+            elif 'Latitude' in df.columns and 'Longitude' in df.columns:
+                 df['latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
+                 df['longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
+            else:
+                df['latitude'] = np.nan
+                df['longitude'] = np.nan
+        else:
+            df['latitude'] = pd.to_numeric(df[lat_col], errors='coerce')
+            df['longitude'] = pd.to_numeric(df[lon_col], errors='coerce')
+
+        if extra_processing_func:
+            df = extra_processing_func(df, filepath)
+
+        df['source'] = source_name
+        print(f"  - Loaded {len(df)} records for {source_name}. Valid coords: {len(df.dropna(subset=['latitude', 'longitude']))}")
+        return df
+    except FileNotFoundError:
+        print(f"Error: File not found at {filepath}. Skipping {source_name}.")
+        return pd.DataFrame()
+    except Exception as e:
+        print(f"Error reading {source_name} data from {filepath}: {e}")
+        return pd.DataFrame()
+
+def process_submit_data(df, filepath):
+    if 'x' in df.columns and 'y' in df.columns:
+        sample_x = df['x'].iloc[0] if len(df) > 0 else None
+        is_lat_lon = False
+        if sample_x is not None and isinstance(sample_x, (int, float)) and -180 <= sample_x <= 180:
+            if 'y' in df.columns and isinstance(df['y'].iloc[0], (int, float)) and -90 <= df['y'].iloc[0] <= 90:
+                is_lat_lon = True
+        
+        if is_lat_lon:
+            df['latitude'] = df['y']
+            df['longitude'] = df['x']
+        else:
+            df['latitude'] = np.nan
+            df['longitude'] = np.nan
+            for idx, row in df.iterrows():
+                if pd.notna(row['x']) and pd.notna(row['y']):
+                    for zone in [18, 19, 20, 21, 22]:
+                        try:
+                            lat, lon = utm_to_latlon(row['x'], row['y'], utm_zone=zone, hemisphere='south')
+                            if -90 <= lat <= 90 and -180 <= lon <= 180:
+                                df.at[idx, 'latitude'] = lat
+                                df.at[idx, 'longitude'] = lon
+                                break
+                        except: continue
+    return df
+
+# --- Helper: Get Raster Bounds ---
+def get_raster_bounds(tiff_path):
+    if not os.path.exists(tiff_path):
+        print(f"Error: Reference TIFF not found at {tiff_path}")
+        return None
+    try:
+        with rasterio.open(tiff_path) as src:
+            if src.crs.is_geographic:
+                bounds = src.bounds
+                folium_bounds = [[bounds.bottom, bounds.left], [bounds.top, bounds.right]]
+            else:
+                wgs84_bounds = transform_bounds(src.crs, 'EPSG:4326', *src.bounds)
+                folium_bounds = [[wgs84_bounds[1], wgs84_bounds[0]], [wgs84_bounds[3], wgs84_bounds[2]]]
+            print(f"  Bounds for {os.path.basename(tiff_path)} (lat/lon for Folium): {folium_bounds}")
+            return folium_bounds
+    except Exception as e:
+        print(f"Error reading bounds from {tiff_path}: {e}")
+        return None
+
+# --- Helper: Create Enhanced Overlay PNG (Updated for specific interfluve handling) ---
+def create_enhanced_overlay_png(source_tiff_path, target_png_path,
+                                color=(255, 0, 255), alpha=200,
+                                dilation_iterations=0, nodata_val=None):
+    if not os.path.exists(source_tiff_path):
+        print(f"Error: Overlay source TIFF not found at {source_tiff_path}")
+        return False
+    try:
+        with rasterio.open(source_tiff_path) as src:
+            data = src.read(1)
+            height, width = data.shape
+            rgba = np.zeros((height, width, 4), dtype=np.uint8)
+
+            effective_nodata_val_generic = nodata_val
+            if effective_nodata_val_generic is None:
+                effective_nodata_val_generic = src.nodatavals[0] if src.nodatavals and src.nodatavals[0] is not None else 0
+
+            filename_lower = os.path.basename(source_tiff_path).lower()
+            is_interfluves_or_streams = 'interfluves' in filename_lower or 'streams' in filename_lower
+            is_tpi = 'tpi' in filename_lower
+
+            if is_interfluves_or_streams:
+                print(f"  Applying specific interfluves/streams logic (features are value 1) with dilation: {dilation_iterations} iterations...")
+                binary_mask = (data == 1) # Assumes interfluves/streams are value 1
+
+                if dilation_iterations > 0:
+                    mask_to_color = binary_dilation(binary_mask, iterations=dilation_iterations)
+                    print(f"    Applied dilation with {dilation_iterations} iterations.")
+                else:
+                    mask_to_color = binary_mask
+
+                if color:
+                    rgba[mask_to_color, 0] = color[0]
+                    rgba[mask_to_color, 1] = color[1]
+                    rgba[mask_to_color, 2] = color[2]
+                rgba[mask_to_color, 3] = alpha
+
+            elif is_tpi:
+                print("  Applying TPI colormap...")
+                tpi_nodata_val = src.nodatavals[0] if src.nodatavals and src.nodatavals[0] is not None else np.nan
+                
+                valid_data_tpi = data[data != tpi_nodata_val] if not np.isnan(tpi_nodata_val) else data[~np.isnan(data)]
+                if len(valid_data_tpi) < 2:
+                    vmin_tpi, vmax_tpi = -2, 2
+                    if len(valid_data_tpi) == 1: vmin_tpi, vmax_tpi = valid_data_tpi[0]-1, valid_data_tpi[0]+1
+                else:
+                     vmin_tpi = np.percentile(valid_data_tpi, 5)
+                     vmax_tpi = np.percentile(valid_data_tpi, 95)
+                if vmin_tpi == vmax_tpi: vmin_tpi -=1; vmax_tpi +=1
+
+                norm_tpi = plt.Normalize(vmin=vmin_tpi, vmax=vmax_tpi)
+                colormap = plt.cm.RdBu_r
+                colored_tpi = colormap(norm_tpi(data))
+
+                alpha_channel_tpi = np.ones_like(data, dtype=float) * (alpha / 255.0)
+                alpha_channel_tpi[np.abs(data) < 0.25] = 0.1 * (alpha / 255.0)
+
+                rgba[:,:,0] = (colored_tpi[:,:,0] * 255).astype(np.uint8)
+                rgba[:,:,1] = (colored_tpi[:,:,1] * 255).astype(np.uint8)
+                rgba[:,:,2] = (colored_tpi[:,:,2] * 255).astype(np.uint8)
+                rgba[:,:,3] = (alpha_channel_tpi * 255).astype(np.uint8)
+
+                nodata_mask_for_tpi = (data == tpi_nodata_val) if not np.isnan(tpi_nodata_val) else np.isnan(data)
+                rgba[nodata_mask_for_tpi, 3] = 0
+
+            else: # Generic case
+                print(f"  Applying generic binary/single-color logic with dilation: {dilation_iterations} iterations...")
+                binary_mask = (data != effective_nodata_val_generic) if not np.isnan(effective_nodata_val_generic) else ~np.isnan(data)
+
+                if dilation_iterations > 0:
+                    mask_to_color = binary_dilation(binary_mask, iterations=dilation_iterations)
+                    print(f"    Applied dilation with {dilation_iterations} iterations.")
+                else:
+                    mask_to_color = binary_mask
+
+                if color:
+                    rgba[mask_to_color, 0] = color[0]
+                    rgba[mask_to_color, 1] = color[1]
+                    rgba[mask_to_color, 2] = color[2]
+                rgba[mask_to_color, 3] = alpha
+            
+            plt.imsave(target_png_path, rgba)
+            print(f"  Enhanced overlay PNG created at {target_png_path}")
+            return True
+    except Exception as e:
+        print(f"Error creating enhanced overlay PNG from {source_tiff_path}: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+# --- Main Combined Function ---
+def create_combined_map():
+    print("--- Initializing Combined Map Creation ---")
+
+    # 1. Prepare Archaeological Data
+    print("\n--- Loading Archaeological Data ---")
+    arch_dataframes = []
+    arch_datasets_config = [
+        {"file": "mound_villages_acre.csv", "name": "Mound Villages",
+         "utm_params": {"x_col": "UTM X (Easting)", "y_col": "UTM Y (Northing)", "zone": 19}},
+        {"file": "casarabe_sites_utm.csv", "name": "Casarabe Sites",
+         "utm_params": {"x_col": "UTM X (Easting)", "y_col": "UTM Y (Northing)", "zone": 20}},
+        {"file": "amazon_geoglyphs_sites.csv", "name": "Amazon Geoglyphs", "lat_col":"latitude", "lon_col":"longitude"},
+        {"file": "submit.csv", "name": "Archaeological Survey Data", "extra_processing": process_submit_data},
+        {"file": "science.ade2541_data_s2.csv", "name": "Science Data", "lat_col":"Latitude", "lon_col":"Longitude"}
+    ]
+
+    for config in arch_datasets_config:
+        filepath = os.path.join(ARCHAEOLOGICAL_DATA_FOLDER, config["file"])
+        df = read_arch_data(filepath, config["name"],
+                            utm_conversion_params=config.get("utm_params"),
+                            lat_col=config.get("lat_col", 'latitude'),
+                            lon_col=config.get("lon_col", 'longitude'),
+                            extra_processing_func=config.get("extra_processing"))
+        if not df.empty:
+            if config["name"] == "Amazon Geoglyphs" and len(df) > 2000:
+                df = df.sample(n=2000, random_state=42)
+                print(f"    Sampled Amazon Geoglyphs to {len(df)} sites.")
+            elif config["name"] == "Archaeological Survey Data" and len(df) > 1000:
+                df = df.sample(n=1000, random_state=42)
+                print(f"    Sampled Archaeological Survey Data to {len(df)} sites.")
+            arch_dataframes.append((config["name"], df))
+
+    # 2. Prepare Raster Overlay
+    print("\n--- Preparing Raster Overlay ---")
+    overlay_filename_lower = os.path.basename(OVERLAY_SOURCE_TIFF_PATH).lower()
+    if 'interfluves' in overlay_filename_lower or 'streams' in overlay_filename_lower:
+        current_overlay_color = OVERLAY_COLOR_BINARY
+        current_overlay_alpha = OVERLAY_ALPHA_BINARY
+        current_dilation = DILATION_AMOUNT_BINARY
+        overlay_type_name = "Binary Features (Interfluves/Streams)" # More specific name
+    elif 'tpi' in overlay_filename_lower:
+        current_overlay_color = None
+        current_overlay_alpha = TPI_ALPHA
+        current_dilation = 0
+        overlay_type_name = "TPI"
+    else:
+        current_overlay_color = (0, 255, 255)
+        current_overlay_alpha = 200
+        current_dilation = DILATION_AMOUNT_BINARY
+        overlay_type_name = "Generic Overlay"
+    
+    print(f"  Overlay Type: {overlay_type_name}, Dilation: {current_dilation}, Alpha: {current_overlay_alpha}")
+
+    if not create_enhanced_overlay_png(
+        OVERLAY_SOURCE_TIFF_PATH,
+        TEMP_OVERLAY_PNG_PATH,
+        color=current_overlay_color,
+        alpha=current_overlay_alpha,
+        dilation_iterations=current_dilation
+        # nodata_val is handled inside create_enhanced_overlay_png based on type
+    ):
+        print("ERROR: Failed to create raster overlay PNG. Overlay will be skipped.")
+        raster_overlay_available = False
+    else:
+        raster_overlay_available = True
+
+    map_fit_bounds = get_raster_bounds(REFERENCE_BOUNDS_TIFF_PATH)
+    overlay_placement_bounds = get_raster_bounds(OVERLAY_SOURCE_TIFF_PATH) if raster_overlay_available else None
+
+    # 3. Create Folium Map
+    print("\n--- Creating Folium Map ---")
+    google_satellite_tiles = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+    google_attribution = "Google Satellite"
+    
+    if map_fit_bounds:
+        m = folium.Map(tiles=None)
+        folium.TileLayer(tiles=google_satellite_tiles, attr=google_attribution, name="Google Satellite", overlay=False, control=True).add_to(m)
+        m.fit_bounds(map_fit_bounds)
+        print(f"  Map initially fitted to bounds of {os.path.basename(REFERENCE_BOUNDS_TIFF_PATH)}")
+    else:
+        m = folium.Map(location=MAP_CENTER_ARCH, zoom_start=MAP_ZOOM_ARCH, tiles=None)
+        folium.TileLayer(tiles=google_satellite_tiles, attr=google_attribution, name="Google Satellite", overlay=False, control=True).add_to(m)
+        print(f"  Map initially centered at {MAP_CENTER_ARCH}, zoom {MAP_ZOOM_ARCH} (reference raster bounds failed).")
+
+    folium.TileLayer(
+        tiles='OpenStreetMap',
+        attr='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        name='OpenStreetMap',
+        overlay=False, control=True
+    ).add_to(m)
+    folium.TileLayer(
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        name='Esri World Imagery', overlay=False, control=True
+    ).add_to(m)
+    folium.TileLayer(
+        tiles='Stamen Terrain',
+        attr='Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> — Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        name='Stamen Terrain',
+        overlay=False, control=True
+    ).add_to(m)
+
+    # 4. Add Archaeological Sites to Map
+    print("\n--- Adding Archaeological Sites ---")
+    arch_colors = {
+        'Mound Villages': 'red', 'Casarabe Sites': 'blue',
+        'Amazon Geoglyphs': 'orange', 'Archaeological Survey Data': 'green',
+        'Science Data': 'purple'
+    }
+    arch_feature_groups = {}
+    total_arch_points_plotted = 0
+
+    for source_name, df in arch_dataframes:
+        if source_name not in arch_feature_groups:
+            arch_feature_groups[source_name] = folium.FeatureGroup(name=f"Sites: {source_name}", show=True)
+        
+        color = arch_colors.get(source_name, 'gray')
+        valid_df = df.dropna(subset=['latitude', 'longitude'])
+        
+        if valid_df.empty:
+            print(f"  No valid coordinates to plot for {source_name}.")
+            continue
+
+        print(f"  Plotting {len(valid_df)} sites for {source_name} (color: {color})")
+        for _, row in valid_df.iterrows():
+            popup_html = f"<b>Source:</b> {source_name}<br>"
+            site_name_keys = ['Site Name', 'Site', 'name']
+            for key in site_name_keys:
+                if key in row and pd.notna(row[key]):
+                    popup_html += f"<b>Site:</b> {row[key]}<br>"
+                    break
+            popup_html += f"<b>Coordinates:</b> {row['latitude']:.5f}, {row['longitude']:.5f}"
+            
+            folium.CircleMarker(
+                location=[row['latitude'], row['longitude']],
+                radius=4,
+                popup=folium.Popup(popup_html, max_width=300),
+                color=color,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.7,
+                tooltip=f"{source_name}: {row.get(site_name_keys[0], 'Unknown Site')}"
+            ).add_to(arch_feature_groups[source_name])
+            total_arch_points_plotted +=1
+        
+        arch_feature_groups[source_name].add_to(m)
+    print(f"  Total archaeological sites plotted: {total_arch_points_plotted}")
+
+    # 5. Add Raster Overlay to Map
+    if raster_overlay_available and overlay_placement_bounds and os.path.exists(TEMP_OVERLAY_PNG_PATH):
+        print("\n--- Adding Raster Overlay to Map ---")
+        img_overlay_name = f"Raster: {os.path.basename(OVERLAY_SOURCE_TIFF_PATH)} ({overlay_type_name})"
+        img_overlay = folium.raster_layers.ImageOverlay(
+            name=img_overlay_name,
+            image=TEMP_OVERLAY_PNG_PATH,
+            bounds=overlay_placement_bounds,
+            opacity=1.0,
+            interactive=True,
+            cross_origin=False,
+            show=True
+        )
+        raster_fg = folium.FeatureGroup(name="Raster Overlays", show=True) # Group for raster layers
+        img_overlay.add_to(raster_fg)
+        raster_fg.add_to(m)
+        print(f"  Added '{img_overlay_name}' to the map.")
+    else:
+        print("\nSkipping raster overlay due to earlier errors or missing files.")
+        
+    # --- Define and Add Your Target AOI for GEDI Analysis (from your interfluves script) ---
+    # ** MODIFY THESE COORDINATES based on your visual guess from the map **
+    aoi_gedi_bounds_sw_ne = [ # These are [south_lat, west_lon], [north_lat, east_lon]
+        [-12.85, -62.95],  # Approx South-West corner (latitude, longitude)
+        [-12.70, -62.80]   # Approx North-East corner (latitude, longitude)
+    ]
+    # Ensure lats are south < north and lons are west < east if defining by SW/NE
+    # Or, more robustly for folium.Rectangle, provide [[min_lat, min_lon], [max_lat, max_lon]]
+    min_lat_aoi = min(aoi_gedi_bounds_sw_ne[0][0], aoi_gedi_bounds_sw_ne[1][0])
+    max_lat_aoi = max(aoi_gedi_bounds_sw_ne[0][0], aoi_gedi_bounds_sw_ne[1][0])
+    min_lon_aoi = min(aoi_gedi_bounds_sw_ne[0][1], aoi_gedi_bounds_sw_ne[1][1])
+    max_lon_aoi = max(aoi_gedi_bounds_sw_ne[0][1], aoi_gedi_bounds_sw_ne[1][1])
+    
+    folium_aoi_for_rectangle = [[min_lat_aoi, min_lon_aoi], [max_lat_aoi, max_lon_aoi]]
+
+    folium.Rectangle(
+        bounds=folium_aoi_for_rectangle,
+        color='red',
+        fill=True,
+        fill_color='red',
+        fill_opacity=0.2,
+        tooltip="Target AOI for GEDI Analysis"
+    ).add_to(m)
+    print(f"\nAdded Target AOI for GEDI Analysis at bounds: {folium_aoi_for_rectangle}")
+
+    # 6. Add Map Controls and Save
+    print("\n--- Finalizing Map ---")
+    folium.LayerControl(collapsed=False).add_to(m)
+    plugins.MiniMap(toggle_display=True, position="bottomright").add_to(m)
+    plugins.MeasureControl(position='bottomleft', primary_length_unit='kilometers').add_to(m)
+    plugins.Fullscreen(position="topright", force_separate_button=True).add_to(m)
+
+    m.save(OUTPUT_HTML_MAP)
+    print(f"Combined map saved to: {OUTPUT_HTML_MAP}")
+
+    # 8. Cleanup temporary PNG
+    if os.path.exists(TEMP_OVERLAY_PNG_PATH):
+        try:
+            # os.remove(TEMP_OVERLAY_PNG_PATH) # Uncomment to remove temp file
+            print(f"  Temporary overlay PNG kept at {TEMP_OVERLAY_PNG_PATH} for inspection.")
+        except Exception as e:
+            print(f"  Warning: Could not remove temporary PNG {TEMP_OVERLAY_PNG_PATH}: {e}")
+
+    print("\n--- Combined Map Script Finished ---")
+
+# --- Main Execution Guard ---
+if __name__ == "__main__":
+    create_combined_map()
+</file>
+
+</files>
